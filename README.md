@@ -11,6 +11,8 @@ the Ministry of Health question: **when did this fridge go above 5°C, and for h
   exports to CSV and has a print layout.
 - **Logger registry:** which logger is in which fridge, since when, in °C or °F. Summer can
   record a move herself.
+- **Sign-in and roles:** Summer (admin) sees every branch; each branch manager uploads and
+  exports only their own branch, and can flag a mistaken upload for Summer to void.
 
 The UI follows the Simple To Work **"Northern lights"** brand: a night-sky background with
 aurora glows and liquid-glass cards. Headings are Sora, body text Inter and data JetBrains
@@ -22,21 +24,100 @@ Angular 22 + Angular Material + ECharts, all in Docker Compose.
 ## Run it (only Docker needed)
 
 You need Docker Desktop, or Docker Engine 24+ with Compose v2. You do not need Python, Node
-or MySQL on the host, and there is no `.env` step.
+or MySQL on the host. **This repository contains no passwords or secrets**; see step 2.
+
+### 1. Get the code
 
 ```bash
 git clone https://github.com/HarrBarr/squanchy-kitchens.git
 cd squanchy-kitchens
+```
+
+No Git? Download the ZIP from GitHub, unzip it and `cd` into the folder.
+
+### 2. Add the `.env` file you were given (optional)
+
+If you received a `.env` file (for example attached to an e-mail), save it in the
+`squanchy-kitchens` folder, next to `docker-compose.yml`, **before the first start**. If your
+mail client renamed it, rename it back to exactly `.env`. It holds the two sign-in passwords
+for your copy and is ignored by git:
+
+```bash
+ADMIN_PASSWORD=...
+DEMO_MANAGER_PASSWORD=...
+```
+
+Without a `.env`, the app still starts: the first start generates random passwords and
+prints them once (see step 4). `.env.example` lists every other optional setting.
+
+### 3. Start it
+
+```bash
 docker compose up --build
 ```
 
-If you don't have Git, download the ZIP from GitHub, unzip it, `cd` into the folder and run
-the same command.
+Open **http://localhost:8080**. The first start takes a minute or two: it builds the images,
+starts MySQL, runs the migrations, seeds the logger registry from `data/loggers.csv`,
+creates the accounts, and imports one week of mock logger data from
+`data/mock-logger-files/` (2026-W38, 14–20 Sep 2026). The app only listens on this computer
+(`127.0.0.1`); other devices on the network cannot reach it.
 
-Open **http://localhost:8080** and sign in (see [Sign-in](#sign-in)). On the first start the API waits for MySQL, runs the
-migrations and seeds the logger registry from `data/loggers.csv`. It then imports the mock
-week in `data/mock-logger-files/` (2026-W38, 14–20 Sep 2026). The dashboard should show
-**three red fridges**:
+### 4. Sign in
+
+There is no public sign-up. The first start creates:
+
+| Username | Role | Sees |
+|---|---|---|
+| `admin` | admin (Summer Smith) | every branch; reviews flagged uploads; manages users |
+| `manager.haifa` | branch manager | Haifa |
+| `manager.rishon` | branch manager | Rishon LeZion |
+| `manager.telaviv` | branch manager | Tel Aviv |
+| `manager.jerusalem` | branch manager | Jerusalem |
+| `manager.beersheva` | branch manager | Be'er Sheva |
+| `manager.netanya` | branch manager | Netanya |
+| `manager.petah` | branch manager | Petah Tikva |
+| `manager.ashdod` | branch manager | Ashdod |
+| `manager.herzliya` | branch manager | Herzliya |
+| `manager.beitshemesh` | branch manager | Beit Shemesh |
+| `manager.kfarsaba` | branch manager | Kfar Saba |
+| `manager.rehovot` | branch manager | Rehovot |
+
+The branch managers share one password. The passwords are:
+
+- **with a `.env`:** the `ADMIN_PASSWORD` and `DEMO_MANAGER_PASSWORD` in it;
+- **without one:** generated on the first start and printed once, in the terminal running
+  `docker compose up` and in the API log:
+
+  ```bash
+  docker compose logs api | grep -A 8 "sign-in credentials"
+  ```
+
+### If you started it before saving the `.env` file
+
+No problem: the accounts were created with generated passwords. To switch to the ones in
+your `.env`, save it as in step 2, then run the seeding script:
+
+```bash
+docker compose up -d                                                  # restarts the API so it reads .env
+docker compose exec api python -m app.seed_users --reset-passwords    # sets the passwords from .env
+```
+
+The second command prints a summary table of the accounts it updated. The same two commands
+recover a lost password (see [Seeding users yourself](#seeding-users-yourself)).
+
+### Suggested walkthrough (about 5 minutes)
+
+1. Sign in as `admin`. The W38 dashboard shows **three red fridges** (table below).
+2. Open a red fridge to see its chart, then **Inspector report → CSV**.
+3. Sign out and sign in as `manager.rishon`. Only Rishon LeZion is visible; asking the API
+   for another branch returns `403`.
+4. As the manager, upload a logger file (drag and drop works) and flag it as "uploaded by
+   mistake" on the **Uploads** screen.
+5. Sign back in as `admin`: **Review** shows the flag with a badge. Void it. The data
+   disappears from the dashboard; the upload and its original file are kept for the audit
+   trail.
+
+The mock week, as the dashboard should show it:
 
 | Fridge | What happened |
 |---|---|
@@ -48,48 +129,25 @@ Three fridges are amber. Beit Shemesh Dairy has a 10-hour battery gap, Jerusalem
 2 h 15 min gap, and Haifa Dairy four `ERR` readings. Everything else is green, including the
 Tel Aviv door-opening spikes.
 
-To start empty and upload files yourself:
+### Other ways to run it
 
 ```bash
-SEED_DEMO_DATA=false docker compose up --build     # or: make up-empty
+make test                                          # all tests, inside the containers
+SEED_DEMO_DATA=false docker compose up --build     # start empty, upload files yourself (make up-empty)
+docker compose down -v                             # start again from scratch (deletes the local data)
 ```
 
 MySQL's port 3306 is **not** published, so it can't clash with a MySQL already on your
-machine. The only published port is 8080. The OpenAPI docs are at
+machine. The only published port is 8080, on `127.0.0.1`. The OpenAPI docs are at
 http://localhost:8080/api/docs.
 
-## Sign-in
-
-There is no public sign-up, and **no password or secret is stored in this repository.** On
-the first start the API creates the admin (Summer Smith) and, with the default
-`SEED_DEMO_DATA=true`, one branch manager per branch: `manager.haifa`, `manager.rishon`,
-`manager.telaviv`, `manager.jerusalem`, `manager.beersheva`, `manager.netanya`,
-`manager.petah`, `manager.ashdod`, `manager.herzliya`, `manager.beitshemesh`,
-`manager.kfarsaba`, `manager.rehovot`.
-
-- **Passwords provided to you** (for example by e-mail): put them in a `.env` file next to
-  `docker-compose.yml` *before* the first start (see `.env.example`):
-
-  ```bash
-  ADMIN_PASSWORD=...
-  DEMO_MANAGER_PASSWORD=...
-  ```
-
-- **No `.env`:** random passwords are generated on the first start and printed **once** in the
-  API log:
-
-  ```bash
-  docker compose logs api | grep -A 8 "sign-in credentials"
-  ```
-
-- **Change them later**, or recover from a lost one: `make seed-users ARGS="--reset-passwords"`
-  (see [Seeding users yourself](#seeding-users-yourself)).
+## Accounts and roles
 
 The JWT signing secret is generated per install and kept in the `api-state` volume, unless
-you set `JWT_SECRET`. The web UI is published on `127.0.0.1` only, so other devices on the
-network cannot reach the demo. Tokens last 8 h by default; logging out drops the token in the
-browser. A forgotten password is reset by Summer on the Users screen, which shows a one-time
-temporary password. Nothing is e-mailed.
+you set `JWT_SECRET`. Passwords are stored only as bcrypt hashes. Tokens last 8 h by default;
+logging out drops the token in the browser. A forgotten password is reset by Summer on the
+Users screen, which shows a one-time temporary password, or with the seeding script.
+Nothing is e-mailed.
 
 What each role can do (the API enforces all of it; the UI only hides what you cannot use):
 
@@ -107,8 +165,8 @@ voided correction had overwritten come back from the earlier file.
 
 ### Seeding users yourself
 
-The users can also be created or re-keyed with a standalone script, for example to hand
-out your own passwords instead of the defaults:
+The seeding script creates the accounts or changes their passwords, for example to hand
+out your own passwords instead of generated ones:
 
 ```bash
 make seed-users                                   # prompts for the two passwords (hidden)
@@ -184,8 +242,9 @@ make dev   # docker compose -f docker-compose.yml -f docker-compose.dev.yml up -
 | `make lint` / `make fmt` | ruff + mypy, prettier |
 | `make reset-db` | `down -v` then `up` (**deletes** MySQL data and stored uploads) |
 
-Every setting has a default in `docker-compose.yml` (`${VAR:-default}`). `.env.example`
-lists them in case you want to override one. The alert rules are configurable:
+Every setting except the passwords and `JWT_SECRET` has a default in `docker-compose.yml`
+(`${VAR:-default}`); those are generated when left empty (see [Run it](#run-it-only-docker-needed)).
+`.env.example` lists every setting in case you want to override one. The alert rules are configurable:
 `ALERT_THRESHOLD_C=5.0`, `SAMPLE_INTERVAL_MINUTES=15`, `MIN_EXCURSION_READINGS=2`.
 
 ## How it works
