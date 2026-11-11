@@ -7,6 +7,9 @@ export interface FridgeCard {
   loggers: string[];
   colour: Colour;
   ongoing: boolean;
+  /** Has older readings, but this period's file has not been uploaded yet. */
+  awaiting_upload: boolean;
+  last_seen_local: string | null;
   reason: string;
   last_temp_c: number | null;
   last_reading_local: string | null;
@@ -23,6 +26,11 @@ export interface Dashboard {
   period_label: string;
   threshold_c: number;
   counts: Record<Colour, number>;
+  fridges_total: number;
+  fridges_with_readings: number;
+  previous_period_from: string | null;
+  previous_period_to: string | null;
+  previous_period_label: string | null;
   fridges: FridgeCard[];
 }
 

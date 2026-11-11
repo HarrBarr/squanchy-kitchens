@@ -47,6 +47,21 @@
   </div>
 }
 
+@if (incomplete()) {
+  @let d = data()!;
+  <div class="incomplete" role="status" data-testid="incomplete-banner">
+    <mat-icon>hourglass_top</mat-icon>
+    <div>
+      <strong>{{ d.period_label }} is incomplete:</strong>
+      {{ d.fridges_with_readings }} of {{ d.fridges_total }} fridges have readings so far. The
+      others are waiting for this week's logger file.
+    </div>
+    @if (d.previous_period_label) {
+      <button mat-stroked-button (click)="previousWeek()">See {{ d.previous_period_label }}</button>
+    }
+  </div>
+}
+
 @if (loading()) {
   <mat-progress-bar mode="indeterminate" />
 }
@@ -83,7 +98,7 @@
               <div class="branch">{{ f.branch }}</div>
               <div class="fridge">{{ f.fridge }}</div>
             </div>
-            <span class="pill {{ c }}">{{ label[c] }}</span>
+            <span class="pill {{ c }}">{{ cardLabel(f, c) }}</span>
           </div>
           <div class="temp">
             {{ fmtTemp(f.last_temp_c) }}

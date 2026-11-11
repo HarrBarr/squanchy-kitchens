@@ -44,6 +44,15 @@ def latest_week(db: Session, fridge_id: int | None = None) -> tuple[date, date] 
     return monday, monday + timedelta(days=6)
 
 
+def previous_week_with_data(db: Session, before_utc: datetime) -> tuple[date, date] | None:
+    """The ISO week of the newest reading before ``before_utc`` (i.e. before a period)."""
+    latest = db.scalar(select(func.max(Reading.ts_local)).where(Reading.ts_utc < before_utc))
+    if latest is None:
+        return None
+    monday = latest.date() - timedelta(days=latest.weekday())
+    return monday, monday + timedelta(days=6)
+
+
 def resolve_period(
     db: Session,
     settings: Settings,

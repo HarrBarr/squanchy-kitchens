@@ -1,4 +1,13 @@
-import { addDays, colourFor, fmtDuration, loggerFromFilename, mondayOf, weekOf } from './format';
+import {
+  addDays,
+  cardLabel,
+  colourFor,
+  incompletePeriod,
+  fmtDuration,
+  loggerFromFilename,
+  mondayOf,
+  weekOf,
+} from './format';
 
 const base = {
   excursion_count: 0,
@@ -52,5 +61,18 @@ describe('week helpers', () => {
     expect(mondayOf('2026-09-14')).toBe('2026-09-14');
     expect(weekOf('2026-09-17')).toEqual({ from: '2026-09-14', to: '2026-09-20' });
     expect(addDays('2026-09-14', -7)).toBe('2026-09-07');
+  });
+});
+
+describe('incomplete week', () => {
+  it('is incomplete when only some fridges have readings', () => {
+    expect(incompletePeriod({ fridges_total: 31, fridges_with_readings: 1 })).toBe(true);
+    expect(incompletePeriod({ fridges_total: 31, fridges_with_readings: 31 })).toBe(false);
+    expect(incompletePeriod({ fridges_total: 31, fridges_with_readings: 0 })).toBe(false);
+  });
+  it('labels a waiting fridge "Awaiting upload", not "No data"', () => {
+    expect(cardLabel({ awaiting_upload: true }, 'grey')).toBe('Awaiting upload');
+    expect(cardLabel({ awaiting_upload: false }, 'grey')).toBe('No data');
+    expect(cardLabel({ awaiting_upload: false }, 'red')).toBe('Above 5°C');
   });
 });

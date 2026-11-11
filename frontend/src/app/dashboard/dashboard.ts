@@ -8,7 +8,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Api, errorMessage } from '../core/api';
-import { addDays, COLOUR_LABEL, colourFor, fmtTemp } from '../core/format';
+import { addDays, cardLabel, colourFor, fmtTemp, incompletePeriod } from '../core/format';
 import { Branch, Dashboard } from '../core/models';
 import { Refresh } from '../core/refresh';
 import { UploadLauncher } from '../upload/upload-launcher';
@@ -48,7 +48,11 @@ export class DashboardPage {
   );
 
   readonly colourFor = colourFor;
-  readonly label = COLOUR_LABEL;
+  readonly cardLabel = cardLabel;
+  readonly incomplete = computed(() => {
+    const d = this.data();
+    return !!d && incompletePeriod(d);
+  });
   readonly fmtTemp = fmtTemp;
 
   constructor() {
@@ -77,6 +81,13 @@ export class DashboardPage {
     const d = this.data();
     if (!d) return;
     this.navigate({ from: addDays(d.period_from, days), to: addDays(d.period_to, days) });
+  }
+
+  previousWeek(): void {
+    const d = this.data();
+    if (d?.previous_period_from && d.previous_period_to) {
+      this.navigate({ from: d.previous_period_from, to: d.previous_period_to });
+    }
   }
 
   latest(): void {

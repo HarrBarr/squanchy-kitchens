@@ -251,3 +251,48 @@ def test_registry_overlap_is_409(client):
         },
     )
     assert r.status_code == 409
+
+
+def test_one_early_upload_for_a_new_week_does_not_blank_the_dashboard(client):
+    """Regression: after W38 was imported, uploading only TL-0231's W39 file switched the
+    default dashboard to W39 and every other fridge just said 'No readings in this period'.
+    The default week still follows the newest reading (so the new Haifa alert is visible),
+    but the response now says the week is incomplete and links to the previous week, and
+    the waiting fridges say they are awaiting their file."""
+    for name in ("TL-0231_2026-W38.csv", "TL-0232_2026-W38.csv"):
+        assert _post(client, name).status_code == 200
+    w39 = (
+        "Serial: TL-0231\nModel: LogiTemp LT-1 (legacy)\nUnits: F\nDate,Temperature\n"
+        "21/09/2026 00:00,38.2\n21/09/2026 00:15,42.8\n21/09/2026 00:30,44.6\n"
+        "21/09/2026 00:45,38.1\n"
+    ).encode()
+    r = client.post(
+        "/api/uploads",
+        files={"file": ("TL-0231_2026-W39.csv", w39, "text/csv")},
+        data={"logger_id": "TL-0231"},
+    )
+    assert r.status_code == 200 and r.json()["excursions"] == 1
+
+    d = client.get("/api/dashboard").json()
+    assert d["period_label"] == "2026-W39"
+    assert (d["fridges_with_readings"], d["fridges_total"]) == (1, 31)
+    assert (d["previous_period_from"], d["previous_period_to"], d["previous_period_label"]) == (
+        "2026-09-14",
+        "2026-09-20",
+        "2026-W38",
+    )
+    assert d["fridges"][0]["branch"] == "Haifa" and d["fridges"][0]["colour"] == "red"
+    walk_in = card(d, "Haifa", "Walk-in")
+    assert walk_in["colour"] == "grey" and walk_in["awaiting_upload"] is True
+    assert walk_in["reason"] == "Awaiting this week's file · last reading Sun 20 Sep 23:45"
+    assert walk_in["last_seen_local"] == "2026-09-20T23:45:00"
+    never = card(d, "Netanya", "Dairy")  # no file ever uploaded in this test
+    assert (never["awaiting_upload"], never["reason"]) == (False, "No readings yet")
+    # Fridges that reported come first, the ones still waiting last.
+    colours = [c["colour"] for c in d["fridges"]]
+    assert colours == sorted(colours, key=lambda c: c == "grey")
+
+    # W38 is untouched.
+    w38 = client.get("/api/dashboard", params={"from": "2026-09-14", "to": "2026-09-20"}).json()
+    assert w38["fridges_with_readings"] == 2
+    assert card(w38, "Haifa", "Dairy")["colour"] == "amber"  # its 4 ERR readings

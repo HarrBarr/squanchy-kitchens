@@ -13,10 +13,10 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.period import Period, fmt_duration, resolve_period
+from app.api.period import Period, fmt_duration, previous_week_with_data, resolve_period
 from app.config import Settings, get_settings
 from app.rules import Point, Spike, analyze
 from app.storage.models import Branch, Excursion, Fridge, Gap, Logger, LoggerAssignment, Reading
@@ -32,6 +32,9 @@ class FridgeCard(BaseModel):
     loggers: list[str]
     colour: str  # red | amber | green | grey
     ongoing: bool
+    # Grey cards: the fridge has older readings but this period's file is not uploaded yet.
+    awaiting_upload: bool
+    last_seen_local: datetime | None  # newest reading up to the end of the period
     reason: str
     last_temp_c: float | None
     last_reading_local: datetime | None
@@ -48,6 +51,14 @@ class DashboardOut(BaseModel):
     period_label: str
     threshold_c: float
     counts: dict[str, int]
+    # Coverage: how many fridges have readings in this period. The default period is the week
+    # of the newest reading, so after one early upload for a new week most fridges are still
+    # waiting for their file; the UI says so and links to the previous week with data.
+    fridges_total: int
+    fridges_with_readings: int
+    previous_period_from: date | None
+    previous_period_to: date | None
+    previous_period_label: str | None
     fridges: list[FridgeCard]
 
 
@@ -148,6 +159,13 @@ def dashboard(
         .order_by(Gap.start_utc)
     ):
         gaps[g.fridge_id].append(g)
+    last_seen: dict[int, datetime] = dict(
+        db.execute(
+            select(Reading.fridge_id, func.max(Reading.ts_local))
+            .where(Reading.ts_utc < period.end_utc)
+            .group_by(Reading.fridge_id)
+        ).all()
+    )
     spikes: dict[int, int] = defaultdict(int)
     for _, s in period_spikes(db, settings, period):
         spikes[s.fridge_id] += 1
@@ -190,7 +208,13 @@ def dashboard(
                 bits.append(f"{err} sensor error{'s' if err > 1 else ''}")
             reason = " · ".join(bits)
         elif lst is None:
-            colour, reason = "grey", "No readings in this period"
+            colour = "grey"
+            seen = last_seen.get(f.id)
+            reason = (
+                f"Awaiting this week's file · last reading {seen:%a %d %b %H:%M}"
+                if seen
+                else "No readings yet"
+            )
         else:
             colour, reason = "green", "OK"
         cards.append(
@@ -201,6 +225,8 @@ def dashboard(
                 loggers=sorted(loggers[f.id]),
                 colour=colour,
                 ongoing=ongoing,
+                awaiting_upload=lst is None and f.id in last_seen,
+                last_seen_local=last_seen.get(f.id),
                 reason=reason,
                 last_temp_c=_f(lst[1]) if lst else None,
                 last_reading_local=lst[0] if lst else None,
@@ -212,14 +238,22 @@ def dashboard(
             )
         )
 
-    order = {"red": 0, "amber": 1, "grey": 2, "green": 3}
+    # Fridges that reported come first; the ones still waiting for a file go last.
+    order = {"red": 0, "amber": 1, "green": 2, "grey": 3}
     cards.sort(key=lambda c: (order[c.colour], not c.ongoing, c.branch, c.fridge))
     counts = {k: sum(1 for c in cards if c.colour == k) for k in order}
+    prev = previous_week_with_data(db, period.start_utc)
+    prev_period = resolve_period(db, settings, prev[0], prev[1]) if prev else None
     return DashboardOut(
         period_from=period.start,
         period_to=period.end,
         period_label=period.label,
         threshold_c=settings.alert_threshold_c,
         counts=counts,
+        fridges_total=len(cards),
+        fridges_with_readings=sum(1 for c in cards if c.last_reading_local is not None),
+        previous_period_from=prev_period.start if prev_period else None,
+        previous_period_to=prev_period.end if prev_period else None,
+        previous_period_label=prev_period.label if prev_period else None,
         fridges=cards,
     )

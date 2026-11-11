@@ -1,4 +1,4 @@
-import { Colour, FridgeCard } from './models';
+import { Colour, Dashboard, FridgeCard } from './models';
 
 /**
  * Card colour, the rule Summer did not spell out (also in NOTES.md):
@@ -14,6 +14,17 @@ export function colourFor(
   if (c.gap_count > 0 || c.error_count > 0) return 'amber';
   if (!c.last_reading_local) return 'grey';
   return 'green';
+}
+
+/** Partial week: some fridges have readings, others are still waiting for their file. */
+export function incompletePeriod(
+  d: Pick<Dashboard, 'fridges_total' | 'fridges_with_readings'>,
+): boolean {
+  return d.fridges_with_readings > 0 && d.fridges_with_readings < d.fridges_total;
+}
+
+export function cardLabel(c: Pick<FridgeCard, 'awaiting_upload'>, colour: Colour): string {
+  return colour === 'grey' && c.awaiting_upload ? 'Awaiting upload' : COLOUR_LABEL[colour];
 }
 
 export const COLOUR_LABEL: Record<Colour, string> = {
