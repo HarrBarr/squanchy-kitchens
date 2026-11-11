@@ -3,6 +3,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Viewport } from './core/viewport';
 import { dragHasFiles } from './upload/drop';
 import { UploadLauncher } from './upload/upload-launcher';
 
@@ -29,6 +30,8 @@ import { UploadLauncher } from './upload/upload-launcher';
 })
 export class App {
   private readonly launcher = inject(UploadLauncher);
+  /** Puts the `mobileBreakpoint` class on <body> on phone-sized screens. */
+  protected readonly viewport = inject(Viewport);
   /** Full-page "drop to upload" overlay, only while files are dragged over the page. */
   readonly pageDrag = signal(false);
 

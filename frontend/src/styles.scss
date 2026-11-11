@@ -394,6 +394,141 @@ div.mat-mdc-autocomplete-panel {
   border-radius: 999px;
 }
 
+// ---------- phones: `mobileBreakpoint` is set on <body> by core/viewport.ts ----------
+// One column, full-width controls, consistent sizes, so every block lines up edge to edge.
+.mobileBreakpoint {
+  --sk-radius: 18px;
+
+  .page-head {
+    margin: 4px 0 14px;
+    h1 {
+      font-size: 24px;
+    }
+    .sub {
+      font-size: 13px;
+    }
+  }
+
+  // Toolbars become a tidy grid: the week switcher on its own full-width row, then
+  // full-width fields and buttons.
+  .toolbar-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+
+    > * {
+      grid-column: 1 / -1;
+      min-width: 0;
+    }
+    > mat-form-field {
+      width: 100%;
+    }
+    > .half {
+      grid-column: span 1;
+    }
+    // Only buttons placed directly in the toolbar, never the arrows inside .period-nav.
+    > .mat-mdc-button-base {
+      width: 100%;
+      height: 44px;
+    }
+  }
+
+  .period-nav {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: space-between;
+    .label {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .panel {
+    padding: 14px;
+  }
+
+  .state {
+    padding: 32px 12px;
+  }
+
+  // Tables marked .stack turn into one glass card per row: the first cell is the
+  // title, the others are "label: value" lines from their data-label attribute.
+  table.data.stack {
+    thead {
+      display: none;
+    }
+    tbody {
+      display: grid;
+      gap: 10px;
+    }
+    tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 8px 12px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(245, 247, 255, 0.04);
+      border: 1px solid var(--sk-line-soft);
+    }
+    tbody tr:hover {
+      background: rgba(245, 247, 255, 0.04);
+    }
+    td {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      white-space: normal;
+      text-align: left;
+      overflow-wrap: anywhere;
+    }
+    td.num {
+      text-align: left;
+    }
+    td > .pill {
+      align-self: flex-start; // keep status pills their natural size
+    }
+    td[data-label]::before {
+      content: attr(data-label);
+      font-family: var(--sk-font-mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--sk-muted);
+    }
+    td:first-child {
+      grid-column: 1 / -1;
+      font-size: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--sk-line-soft);
+    }
+    td:first-child::before {
+      display: none;
+    }
+    td.wide,
+    td.note,
+    td.actions {
+      grid-column: 1 / -1;
+    }
+    td.actions .mat-mdc-button-base {
+      width: 100%;
+    }
+    td.note:empty {
+      display: none;
+    }
+  }
+
+  .mat-mdc-dialog-container {
+    --mat-dialog-container-shape: 20px;
+  }
+  .mat-mdc-dialog-content {
+    padding: 0 16px;
+  }
+}
+
 // ---------- print: the inspector gets ink on white paper ----------
 @media print {
   :root {

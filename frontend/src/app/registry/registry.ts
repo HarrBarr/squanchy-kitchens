@@ -72,6 +72,11 @@ export class RegistryPage {
     this.api.uploads().subscribe({ next: (u) => this.uploads.set(u), error: () => undefined });
   }
 
+  /** Earlier assignments (moves), for the History column. */
+  history(l: LoggerInfo) {
+    return l.assignments.filter((a) => a.assigned_to);
+  }
+
   move(l: LoggerInfo): void {
     this.draft = {
       code: l.logger_code,

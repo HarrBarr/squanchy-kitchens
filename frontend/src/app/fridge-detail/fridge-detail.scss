@@ -9,9 +9,23 @@
   height: 400px;
   width: 100%;
 }
-@media (max-width: 600px) {
+:host-context(.mobileBreakpoint) {
   .chart {
-    height: 310px;
+    height: 290px;
+  }
+  .chart-panel {
+    padding: 8px 4px 6px;
+  }
+  .legend {
+    margin: 6px 8px 2px;
+    font-size: 11px;
+  }
+  .list li {
+    padding: 10px 0;
+    font-size: 13px;
+  }
+  .facts .panel h2 {
+    font-size: 15px;
   }
 }
 .legend {

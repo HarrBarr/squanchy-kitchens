@@ -10,7 +10,7 @@
 </div>
 
 <div class="toolbar-row no-print">
-  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+  <mat-form-field appearance="outline" class="half" subscriptSizing="dynamic">
     <mat-label>From</mat-label>
     <input
       matInput
@@ -19,7 +19,7 @@
       (change)="set({ from: $any($event.target).value })"
     />
   </mat-form-field>
-  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+  <mat-form-field appearance="outline" class="half" subscriptSizing="dynamic">
     <mat-label>To</mat-label>
     <input
       matInput
@@ -37,10 +37,12 @@
       }
     </mat-select>
   </mat-form-field>
-  <a mat-flat-button class="btn-cta" [href]="csvUrl()" [attr.aria-disabled]="!data()"
+  <a mat-flat-button class="btn-cta half" [href]="csvUrl()" [attr.aria-disabled]="!data()"
     ><mat-icon>download</mat-icon> CSV</a
   >
-  <button mat-stroked-button (click)="print()"><mat-icon>print</mat-icon> Print</button>
+  <button mat-stroked-button class="half" (click)="print()">
+    <mat-icon>print</mat-icon> Print
+  </button>
 </div>
 
 @if (loading()) {
@@ -70,7 +72,7 @@
       </div>
     } @else {
       <div class="table-wrap">
-        <table class="data">
+        <table class="data stack">
           <thead>
             <tr>
               <th>Branch / fridge</th>
@@ -86,7 +88,7 @@
           <tbody>
             @for (r of d.rows; track r.id) {
               <tr>
-                <td>
+                <td data-label="Branch / fridge">
                   <a
                     [routerLink]="['/fridges', r.fridge_id]"
                     [queryParams]="{ from: d.period_from, to: d.period_to }"
@@ -94,16 +96,16 @@
                     <strong>{{ r.branch }}</strong> · {{ r.fridge }}
                   </a>
                 </td>
-                <td>{{ r.start_local | date: 'EEE d MMM yyyy, HH:mm' }}</td>
-                <td>{{ r.end_local | date: 'EEE d MMM yyyy, HH:mm' }}</td>
-                <td class="num">
+                <td data-label="Start">{{ r.start_local | date: 'EEE d MMM yyyy, HH:mm' }}</td>
+                <td data-label="End">{{ r.end_local | date: 'EEE d MMM yyyy, HH:mm' }}</td>
+                <td class="num" data-label="Duration">
                   {{ r.duration_label }}
                   <div class="muted small">{{ r.duration_minutes }} min</div>
                 </td>
-                <td class="num">{{ r.peak_c | number: '1.1-1' }}°C</td>
-                <td class="num">{{ r.n_readings }}</td>
-                <td>{{ r.logger }}</td>
-                <td>
+                <td class="num" data-label="Peak">{{ r.peak_c | number: '1.1-1' }}°C</td>
+                <td class="num" data-label="Readings">{{ r.n_readings }}</td>
+                <td data-label="Logger">{{ r.logger }}</td>
+                <td data-label="Status">
                   <span class="pill" [class.red]="r.is_open" [class.green]="!r.is_open">
                     {{ r.is_open ? 'Ongoing' : 'Recovered' }}
                   </span>

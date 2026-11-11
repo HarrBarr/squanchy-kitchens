@@ -76,7 +76,7 @@
 <section class="panel">
   <h2>Loggers ({{ loggers().length }})</h2>
   <div class="table-wrap">
-    <table class="data">
+    <table class="data stack">
       <thead>
         <tr>
           <th>Logger</th>
@@ -90,32 +90,32 @@
       <tbody>
         @for (l of loggers(); track l.logger_code) {
           <tr>
-            <td>
+            <td data-label="Logger">
               <strong>{{ l.logger_code }}</strong>
             </td>
-            <td>
+            <td data-label="Branch / fridge">
               @if (l.current; as c) {
                 {{ c.branch }} · {{ c.fridge }}
               } @else {
                 <span class="muted">not assigned</span>
               }
             </td>
-            <td>
+            <td data-label="Unit">
               @if (l.current?.unit === 'F') {
                 <span class="pill amber">°F</span>
               } @else {
                 °C
               }
             </td>
-            <td>{{ l.current?.assigned_from | date: 'd MMM yyyy' }}</td>
-            <td class="muted">
-              @for (a of l.assignments; track a.id) {
-                @if (a.assigned_to) {
-                  <div>{{ a.fridge }} until {{ a.assigned_to | date: 'd MMM' }}</div>
-                }
+            <td data-label="Since">{{ l.current?.assigned_from | date: 'd MMM yyyy' }}</td>
+            <td class="muted" data-label="History">
+              @for (a of history(l); track a.id) {
+                <div>{{ a.fridge }} until {{ a.assigned_to | date: 'd MMM' }}</div>
+              } @empty {
+                <span>Never moved</span>
               }
             </td>
-            <td><button mat-button (click)="move(l)">Move</button></td>
+            <td class="actions"><button mat-button (click)="move(l)">Move</button></td>
           </tr>
         }
       </tbody>
@@ -129,7 +129,7 @@
     <p class="muted">No files uploaded yet.</p>
   } @else {
     <div class="table-wrap">
-      <table class="data">
+      <table class="data stack">
         <thead>
           <tr>
             <th>When (UTC)</th>
@@ -143,12 +143,12 @@
         <tbody>
           @for (u of uploads(); track u.id) {
             <tr>
-              <td>{{ u.started_at | date: 'd MMM yyyy HH:mm' }}</td>
-              <td>{{ u.original_filename }}</td>
-              <td>{{ u.logger }}</td>
-              <td class="num">{{ u.row_count }}</td>
-              <td class="num">{{ u.error_count }}</td>
-              <td class="muted note">{{ u.note }}</td>
+              <td data-label="When (UTC)">{{ u.started_at | date: 'd MMM yyyy HH:mm' }}</td>
+              <td data-label="File">{{ u.original_filename }}</td>
+              <td data-label="Logger">{{ u.logger }}</td>
+              <td class="num" data-label="Rows">{{ u.row_count }}</td>
+              <td class="num" data-label="ERR">{{ u.error_count }}</td>
+              <td class="muted note" data-label="Notes">{{ u.note }}</td>
             </tr>
           }
         </tbody>

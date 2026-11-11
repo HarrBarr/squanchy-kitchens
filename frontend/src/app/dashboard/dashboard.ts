@@ -12,6 +12,7 @@ import { Api, errorMessage } from '../core/api';
 import { addDays, cardLabel, colourFor, fmtTemp, incompletePeriod } from '../core/format';
 import { Branch, Dashboard } from '../core/models';
 import { Refresh } from '../core/refresh';
+import { Viewport } from '../core/viewport';
 import { UploadLauncher } from '../upload/upload-launcher';
 
 @Component({
@@ -34,6 +35,7 @@ export class DashboardPage {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly launcher = inject(UploadLauncher);
+  protected readonly viewport = inject(Viewport);
   private readonly refresh = inject(Refresh);
 
   private readonly query = toSignal(this.route.queryParamMap, { requireSync: true });

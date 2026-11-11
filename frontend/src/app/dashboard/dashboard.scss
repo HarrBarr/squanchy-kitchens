@@ -234,3 +234,98 @@
   font-size: 11px;
   color: var(--sk-muted);
 }
+
+// ---------- phones (`mobileBreakpoint` on <body>) ----------
+:host-context(.mobileBreakpoint) {
+  .toolbar-row mat-form-field {
+    width: 100%;
+  }
+  // All count tiles on one row, equal widths, whatever their number (3 or 4).
+  .stats {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat {
+    padding: 10px 10px 9px;
+    border-radius: 14px;
+    min-height: 66px;
+    box-sizing: border-box;
+    justify-content: flex-start;
+
+    .n {
+      font-size: 22px;
+    }
+    .l {
+      font-size: 10.5px;
+      line-height: 1.25;
+    }
+  }
+
+  .incomplete {
+    padding: 12px 14px;
+    font-size: 13px;
+    button {
+      width: 100%;
+    }
+  }
+
+  // Every card has the same four rows at the same sizes, so cards line up.
+  .grid {
+    gap: 12px;
+  }
+  .card {
+    display: grid;
+    grid-template-rows: auto auto auto auto;
+    padding: 14px 16px 12px;
+
+    &:hover {
+      transform: none;
+    }
+  }
+  .top > div {
+    min-width: 0;
+  }
+  .fridge {
+    font-size: 16px;
+  }
+  .pill {
+    flex: none;
+  }
+  .temp {
+    margin: 10px 0 4px;
+    min-height: 34px;
+    font-size: 28px;
+  }
+  .ongoing {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+  .reason {
+    font-size: 13px;
+    line-height: 1.4;
+    min-height: 2.8em; // two lines, so one-line reasons don't make shorter cards
+  }
+  .foot {
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin-top: 10px;
+    padding-top: 8px;
+    font-size: 10.5px;
+    white-space: nowrap;
+    overflow: hidden;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    span:first-child {
+      flex: 0 1 auto;
+    }
+    span:not(:first-child) {
+      flex: none;
+    }
+  }
+}

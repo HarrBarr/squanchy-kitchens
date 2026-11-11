@@ -24,9 +24,9 @@
     </button>
   </div>
   @if (from()) {
-    <button mat-button (click)="latest()">Latest week</button>
+    <button mat-stroked-button class="half" (click)="latest()">Latest week</button>
   }
-  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" [class.half]="!!from()">
     <mat-label>Branch</mat-label>
     <mat-select [value]="branch()" (valueChange)="setBranch($event)">
       <mat-option [value]="null">All branches</mat-option>
@@ -130,7 +130,10 @@
             @if (f.last_reading_local) {
               <span>Last {{ f.last_reading_local | date: 'EEE d MMM HH:mm' }}</span>
             } @else if (f.still_above && f.last_seen_local) {
-              <span>Last uploaded reading {{ f.last_seen_local | date: 'EEE d MMM HH:mm' }}</span>
+              <span
+                >{{ viewport.isMobile() ? 'Last upload' : 'Last uploaded reading' }}
+                {{ f.last_seen_local | date: 'EEE d MMM HH:mm' }}</span
+              >
             }
             <span>{{ f.loggers.join(', ') }}</span>
             @if (f.spike_count) {
