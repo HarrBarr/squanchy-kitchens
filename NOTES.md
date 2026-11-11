@@ -2,9 +2,10 @@
 
 ## Time spent
 
-- About 7 hours, in one day (11 Nov 2026), working with an AI coding assistant (see
+- About 7 hours of building, in one day (11 Nov 2026), with AI assistants (see
   [AI tools](#ai-tools)). The git history runs from 15:11 to 21:15; the first build before the
-  first commit took about an hour.
+  first commit took about an hour. The planning discussion with Grok came before that and is
+  not counted here.
 - Roughly: parser, rules engine and golden test, data model, API, the three screens and
   Docker (~2 h); fixes from using the app myself: dashboard week logic, ongoing fridges, drag
   and drop (~1 h); brand theme and the phone layout (~1 h); sign-in, roles and the
@@ -101,9 +102,18 @@
 
 ## AI tools
 
-I built this with an AI coding assistant (Claude Code). It wrote most of the code and
-tests; I set the direction, used the app, decided the product questions and checked the
-results.
+I used two AI tools, one for planning and one for building:
+
+1. **Grok, for planning.** I had Grok read the assignment e-mail from my mailbox, then
+   discussed the stack and the architecture with it: FastAPI + MySQL + Angular in Docker
+   Compose, the logger registry, the alert rules, testing against a known answer. It then
+   wrote the development guide,
+   [`squanchy-kitchens-development.md`](squanchy-kitchens-development.md), as the brief.
+2. **Claude Code (CLI), for building.** It developed and tested the app from that guide,
+   and wrote most of the code and tests.
+
+I set the direction, made the product decisions, used the app as Summer and as a branch
+manager, asked for the changes, and checked the results.
 
 - **One thing it got wrong:** the **Void** button did nothing. The click handler was named
   `void`, and in an Angular template `(click)="void(u)"` is the JavaScript `void` operator,
@@ -129,7 +139,10 @@ results.
 
 ## Approach
 
-Started from the e-mail and the messy sample table. I wrote the parser and the rules against
-generated mock files with a known answer (`data/expected_excursions.json`), and got the
-golden test passing before building the screens on top of a stable API. After that, I used
-the app as Summer and as a branch manager, and fixed what got in the way.
+Assignment e-mail → planning discussion with Grok → development guide → build with Claude
+Code. The build followed the guide's order: the parser and the rules first, against mock
+files with a known answer (`data/expected_excursions.json`), with the golden test passing
+before the screens were built on top of a stable API. After that I used the app as Summer and
+as a branch manager, and had what got in the way fixed: the dashboard week logic, ongoing
+fridges, drag and drop, the brand theme, the phone layout, sign-in and roles, and keeping
+passwords out of the repo.
