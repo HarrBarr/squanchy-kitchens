@@ -1,0 +1,19 @@
+CoolTrace data export
+THIS FILE MAY BE INCOMPLETE
+
+Time,Temp
+2026-09-14 00:00,3.2
+
+not a valid line
+2026-09-14 00:15,abc
+2026-09-14 00:30,
+2026-09-14 00:45,4.1
+;;;;
+ERROR: buffer overflow at offset 0x1a3f
+2026-09-14 01:00
+NaN
+14/09/2026 01:15,3.9
+2026-09-14T01:30:00,??
+2026-09-14 01:45,null
+
+end of dump

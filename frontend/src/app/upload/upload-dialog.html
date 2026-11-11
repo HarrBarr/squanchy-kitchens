@@ -1,0 +1,116 @@
+<h2 mat-dialog-title>Upload a logger file</h2>
+
+<mat-dialog-content>
+  @if (!result()) {
+    <p class="muted hint">
+      Pick the raw export as it came off the logger (CSV, semicolon or tab, any of the usual
+      headers). Then confirm which logger it is: the file itself does not say which fridge it was
+      in.
+    </p>
+
+    <label class="file-drop" [class.has-file]="file()">
+      <input
+        type="file"
+        accept=".csv,.txt,.tsv,text/csv,text/plain"
+        (change)="onFile($event)"
+        data-testid="file"
+      />
+      <mat-icon>{{ file() ? 'description' : 'upload_file' }}</mat-icon>
+      <span>{{ file()?.name ?? 'Choose a file…' }}</span>
+    </label>
+
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Logger</mat-label>
+      <mat-select [value]="logger()" (valueChange)="selectLogger($event)" data-testid="logger">
+        @for (l of loggers(); track l.logger_code) {
+          <mat-option [value]="l.logger_code">{{ label(l) }}</mat-option>
+        }
+      </mat-select>
+      @if (guessed()) {
+        <mat-hint>Picked from the filename. Change it if that is wrong.</mat-hint>
+      }
+    </mat-form-field>
+
+    @if (busy()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+    @if (error()) {
+      <div class="msg error" role="alert">
+        <mat-icon>error</mat-icon>
+        <div>
+          {{ error() }}
+          @if (error()?.includes('registry')) {
+            <div><a routerLink="/registry" (click)="close()">Open the logger registry</a></div>
+          }
+        </div>
+      </div>
+    }
+  } @else {
+    @let r = result()!;
+    @if (r.already_imported) {
+      <div class="msg info">
+        <mat-icon>info</mat-icon> This exact file was already imported. Nothing changed.
+      </div>
+    } @else {
+      <div class="msg ok">
+        <mat-icon>check_circle</mat-icon> Imported {{ r.filename }} for {{ r.logger }}.
+      </div>
+      <dl class="summary">
+        <div>
+          <dt>Readings</dt>
+          <dd>{{ r.rows_in_file }}</dd>
+        </div>
+        <div>
+          <dt>New</dt>
+          <dd>{{ r.inserted }}</dd>
+        </div>
+        <div>
+          <dt>Updated</dt>
+          <dd>{{ r.updated }}</dd>
+        </div>
+        <div>
+          <dt>Duplicates</dt>
+          <dd>{{ r.duplicates }}</dd>
+        </div>
+        <div>
+          <dt>Sensor errors</dt>
+          <dd>{{ r.sensor_errors }}</dd>
+        </div>
+        <div>
+          <dt>Gaps</dt>
+          <dd>{{ r.gaps }}</dd>
+        </div>
+        <div [class.alert]="r.excursions">
+          <dt>Excursions</dt>
+          <dd>{{ r.excursions }}</dd>
+        </div>
+        <div>
+          <dt>Spikes</dt>
+          <dd>{{ r.spikes }}</dd>
+        </div>
+      </dl>
+      @if (r.first_reading_local) {
+        <p class="muted">
+          {{ r.first_reading_local | date: 'EEE d MMM HH:mm' }} →
+          {{ r.last_reading_local | date: 'EEE d MMM HH:mm' }}
+          (Asia/Jerusalem)
+        </p>
+      }
+      @for (w of r.warnings; track $index) {
+        <div class="msg warn"><mat-icon>warning</mat-icon> {{ w }}</div>
+      }
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (!result()) {
+    <button mat-button (click)="close()">Cancel</button>
+    <button mat-flat-button [disabled]="!canSubmit()" (click)="submit()" data-testid="submit">
+      Upload
+    </button>
+  } @else {
+    <button mat-button (click)="another()">Upload another</button>
+    <button mat-flat-button (click)="close()">Done</button>
+  }
+</mat-dialog-actions>

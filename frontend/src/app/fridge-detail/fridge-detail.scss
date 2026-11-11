@@ -1,0 +1,56 @@
+.back {
+  margin: -8px 0 8px -8px;
+}
+.chart-panel {
+  padding: 8px;
+}
+.chart {
+  height: 380px;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .chart {
+    height: 300px;
+  }
+}
+.legend {
+  font-size: 12px;
+  margin: 4px 8px;
+}
+.sw {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  vertical-align: -2px;
+  &.exc {
+    background: rgba(201, 42, 42, 0.25);
+  }
+  &.gap {
+    background: rgba(134, 142, 150, 0.35);
+  }
+}
+.facts {
+  display: grid;
+  gap: 0 16px;
+}
+@media (min-width: 900px) {
+  .facts {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--mat-sys-outline-variant);
+  }
+  li:last-child {
+    border-bottom: 0;
+  }
+  .pill {
+    margin-right: 6px;
+  }
+}

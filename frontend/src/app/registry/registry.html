@@ -1,0 +1,155 @@
+<div class="page-head">
+  <div>
+    <h1>Logger registry</h1>
+    <div class="sub">
+      Which logger sits in which fridge, from when, and in which unit (°C or °F).
+    </div>
+  </div>
+</div>
+
+@if (error()) {
+  <div class="state error" role="alert">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
+  </div>
+}
+
+<section class="panel" id="assign-form">
+  <h2>Record a move or add a logger</h2>
+  <p class="muted">
+    Moving a logger closes its current assignment the day before the new one starts. Readings
+    already uploaded are re-filed under the right fridge automatically.
+  </p>
+  <form class="assign" (ngSubmit)="save()">
+    <mat-form-field appearance="outline">
+      <mat-label>Logger</mat-label>
+      <input
+        matInput
+        name="code"
+        [(ngModel)]="draft.code"
+        placeholder="TL-0420"
+        [matAutocomplete]="codes"
+        required
+      />
+      <mat-autocomplete #codes="matAutocomplete">
+        @for (l of loggers(); track l.logger_code) {
+          <mat-option [value]="l.logger_code">{{ l.logger_code }}</mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Branch</mat-label>
+      <input matInput name="branch" [(ngModel)]="draft.branch" [matAutocomplete]="br" required />
+      <mat-autocomplete #br="matAutocomplete">
+        @for (b of branchNames(); track b) {
+          <mat-option [value]="b">{{ b }}</mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Fridge</mat-label>
+      <input matInput name="fridge" [(ngModel)]="draft.fridge" [matAutocomplete]="fr" required />
+      <mat-autocomplete #fr="matAutocomplete">
+        @for (f of fridgeNames(); track f) {
+          <mat-option [value]="f">{{ f }}</mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="unit">
+      <mat-label>Unit</mat-label>
+      <mat-select name="unit" [(ngModel)]="draft.unit">
+        <mat-option value="C">°C</mat-option>
+        <mat-option value="F">°F</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>From (local date)</mat-label>
+      <input matInput type="date" name="from" [(ngModel)]="draft.assigned_from" required />
+    </mat-form-field>
+    <button mat-flat-button type="submit" [disabled]="!valid() || busy()">Save</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Loggers ({{ loggers().length }})</h2>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Logger</th>
+          <th>Branch / fridge</th>
+          <th>Unit</th>
+          <th>Since</th>
+          <th>History</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (l of loggers(); track l.logger_code) {
+          <tr>
+            <td>
+              <strong>{{ l.logger_code }}</strong>
+            </td>
+            <td>
+              @if (l.current; as c) {
+                {{ c.branch }} · {{ c.fridge }}
+              } @else {
+                <span class="muted">not assigned</span>
+              }
+            </td>
+            <td>
+              @if (l.current?.unit === 'F') {
+                <span class="pill amber">°F</span>
+              } @else {
+                °C
+              }
+            </td>
+            <td>{{ l.current?.assigned_from | date: 'd MMM yyyy' }}</td>
+            <td class="muted">
+              @for (a of l.assignments; track a.id) {
+                @if (a.assigned_to) {
+                  <div>{{ a.fridge }} until {{ a.assigned_to | date: 'd MMM' }}</div>
+                }
+              }
+            </td>
+            <td><button mat-button (click)="move(l)">Move</button></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Upload history</h2>
+  @if (uploads().length === 0) {
+    <p class="muted">No files uploaded yet.</p>
+  } @else {
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>When (UTC)</th>
+            <th>File</th>
+            <th>Logger</th>
+            <th class="num">Rows</th>
+            <th class="num">ERR</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (u of uploads(); track u.id) {
+            <tr>
+              <td>{{ u.started_at | date: 'd MMM yyyy HH:mm' }}</td>
+              <td>{{ u.original_filename }}</td>
+              <td>{{ u.logger }}</td>
+              <td class="num">{{ u.row_count }}</td>
+              <td class="num">{{ u.error_count }}</td>
+              <td class="muted note">{{ u.note }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

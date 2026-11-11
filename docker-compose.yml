@@ -1,0 +1,77 @@
+# Demo: `docker compose up --build` -> http://localhost:8080
+# Only Docker is needed on the host. Every value below has a default; no .env required.
+name: squanchy-kitchens
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: squanchy-kitchens-mysql
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-squanchy_kitchens}
+      MYSQL_USER: ${MYSQL_USER:-squanchy}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-squanchy}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-squanchy-root}
+    # No "ports:" on purpose: 3306 stays on the Compose network so a MySQL already
+    # running on the host cannot collide with it.
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    image: squanchy-kitchens-api
+    container_name: squanchy-kitchens-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Jerusalem}
+      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://squanchy:squanchy@mysql:3306/squanchy_kitchens?charset=utf8mb4}
+      # Used only by `docker compose run --rm api pytest`: a disposable schema on the same
+      # MySQL service (created and dropped by the tests). The demo database is not touched.
+      TEST_DATABASE_URL: ${TEST_DATABASE_URL:-mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-squanchy-root}@mysql:3306/squanchy_kitchens_test?charset=utf8mb4}
+      ALERT_THRESHOLD_C: ${ALERT_THRESHOLD_C:-5.0}
+      SAMPLE_INTERVAL_MINUTES: ${SAMPLE_INTERVAL_MINUTES:-15}
+      MIN_EXCURSION_READINGS: ${MIN_EXCURSION_READINGS:-2}
+      SEED_ON_STARTUP: ${SEED_ON_STARTUP:-true}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      SEED_REGISTRY_FILE: /data/seed/loggers.csv
+      SEED_DEMO_DIR: /data/seed/mock-logger-files
+      UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5}
+    volumes:
+      - ./data:/data/seed:ro
+      - uploads:/data/uploads
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./frontend
+      target: runtime
+    image: squanchy-kitchens-web
+    container_name: squanchy-kitchens-web
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  uploads:

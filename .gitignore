@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+backend/var/
+node_modules/
+frontend/dist/
+frontend/.angular/
+*:Zone.Identifier
+.DS_Store

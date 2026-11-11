@@ -1,0 +1,36 @@
+{
+  "threshold_c": 5.0,
+  "rule": "An excursion is two or more consecutive valid readings strictly above 5.0\u00b0C. A single isolated reading above 5.0\u00b0C surrounded by normal (or missing-boundary) readings is a spike, not an alert. ERR and other invalid values are skipped and break a run. A gap longer than the 15-minute sampling interval also breaks a run. Duration is (end - start) in minutes, i.e. from the first to the last consecutive reading above the threshold, not until the first reading back at or below 5.0. Times are Asia/Jerusalem local, with no timezone offset. Fahrenheit loggers are converted to \u00b0C from the value as it appears in the file (one decimal place).",
+  "excursions": [
+    {
+      "logger_id": "TL-0388",
+      "branch": "Rishon LeZion",
+      "fridge": "Cream cakes",
+      "start": "2026-09-14 06:15",
+      "end": "2026-09-20 23:45",
+      "duration_minutes": 9690,
+      "peak_c": 11.5,
+      "n_readings": 647
+    },
+    {
+      "logger_id": "TL-0901",
+      "branch": "Ashdod",
+      "fridge": "Dairy",
+      "start": "2026-09-16 03:00",
+      "end": "2026-09-16 04:00",
+      "duration_minutes": 60,
+      "peak_c": 7.4,
+      "n_readings": 5
+    },
+    {
+      "logger_id": "TL-0601",
+      "branch": "Be'er Sheva",
+      "fridge": "Dairy",
+      "start": "2026-09-16 13:45",
+      "end": "2026-09-20 23:45",
+      "duration_minutes": 6360,
+      "peak_c": 9.4,
+      "n_readings": 425
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+<div class="page-head">
+  <div>
+    <h1>Inspector report</h1>
+    <div class="sub">
+      Every period a fridge was above {{ data()?.threshold_c ?? 5 }}°C for two or more readings in a
+      row. Single door-opening spikes are not listed.
+    </div>
+  </div>
+</div>
+
+<div class="toolbar-row no-print">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>From</mat-label>
+    <input
+      matInput
+      type="date"
+      [value]="data()?.period_from ?? ''"
+      (change)="set({ from: $any($event.target).value })"
+    />
+  </mat-form-field>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>To</mat-label>
+    <input
+      matInput
+      type="date"
+      [value]="data()?.period_to ?? ''"
+      (change)="set({ to: $any($event.target).value })"
+    />
+  </mat-form-field>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Branch</mat-label>
+    <mat-select [value]="branch()" (valueChange)="set({ branch: $event })">
+      <mat-option [value]="null">All branches</mat-option>
+      @for (b of branches(); track b.id) {
+        <mat-option [value]="b.name">{{ b.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+  <a mat-flat-button [href]="csvUrl()" [attr.aria-disabled]="!data()"
+    ><mat-icon>download</mat-icon> CSV</a
+  >
+  <button mat-stroked-button (click)="print()"><mat-icon>print</mat-icon> Print</button>
+</div>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <div class="state error" role="alert">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
+  </div>
+} @else if (data(); as d) {
+  <section class="panel">
+    <h2>
+      {{ d.period_from | date: 'd MMM yyyy' }} – {{ d.period_to | date: 'd MMM yyyy' }}
+      @if (branch()) {
+        · {{ branch() }}
+      }
+    </h2>
+    <p class="muted print-only">
+      Squanchy Bakery · times in {{ d.timezone }} · limit {{ d.threshold_c }}°C
+    </p>
+    @if (d.rows.length === 0) {
+      <div class="state">
+        <mat-icon>verified</mat-icon>
+        <p>No excursions above {{ d.threshold_c }}°C in this period.</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="data">
+          <thead>
+            <tr>
+              <th>Branch / fridge</th>
+              <th>Start</th>
+              <th>End</th>
+              <th class="num">Duration</th>
+              <th class="num">Peak</th>
+              <th class="num">Readings</th>
+              <th>Logger</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of d.rows; track r.id) {
+              <tr>
+                <td>
+                  <a
+                    [routerLink]="['/fridges', r.fridge_id]"
+                    [queryParams]="{ from: d.period_from, to: d.period_to }"
+                  >
+                    <strong>{{ r.branch }}</strong> · {{ r.fridge }}
+                  </a>
+                </td>
+                <td>{{ r.start_local | date: 'EEE d MMM yyyy, HH:mm' }}</td>
+                <td>{{ r.end_local | date: 'EEE d MMM yyyy, HH:mm' }}</td>
+                <td class="num">
+                  {{ r.duration_label }}
+                  <div class="muted small">{{ r.duration_minutes }} min</div>
+                </td>
+                <td class="num">{{ r.peak_c | number: '1.1-1' }}°C</td>
+                <td class="num">{{ r.n_readings }}</td>
+                <td>{{ r.logger }}</td>
+                <td>
+                  <span class="pill" [class.red]="r.is_open" [class.green]="!r.is_open">
+                    {{ r.is_open ? 'Ongoing' : 'Recovered' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="muted small">
+        Duration runs from the first to the last reading above the limit. "Ongoing" means the fridge
+        was still above the limit at its last uploaded reading.
+      </p>
+    }
+  </section>
+}

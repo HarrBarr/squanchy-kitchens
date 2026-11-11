@@ -1,0 +1,110 @@
+<a mat-button routerLink="/" [queryParams]="periodParams()" class="back no-print">
+  <mat-icon>arrow_back</mat-icon> All fridges
+</a>
+
+@if (data(); as d) {
+  <div class="page-head">
+    <div>
+      <h1>{{ d.branch }} · {{ d.fridge }}</h1>
+      <div class="sub">Logger {{ loggers().join(', ') || '—' }} · Asia/Jerusalem time</div>
+    </div>
+    <div class="period-nav" role="group" aria-label="Week">
+      <button mat-icon-button (click)="shiftWeek(-7)" aria-label="Previous week">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <div class="label">
+        {{ d.period_label }}
+        <small>{{ d.period_from | date: 'd MMM' }} – {{ d.period_to | date: 'd MMM yyyy' }}</small>
+      </div>
+      <button mat-icon-button (click)="shiftWeek(7)" aria-label="Next week">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  </div>
+}
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <div class="state error" role="alert">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
+  </div>
+} @else if (data(); as d) {
+  <section class="panel chart-panel">
+    @if (d.readings.length === 0) {
+      <div class="state">
+        <mat-icon>show_chart</mat-icon>
+        <p>No readings for this fridge in {{ d.period_label }}.</p>
+      </div>
+    } @else {
+      <div echarts [options]="options()!" class="chart" aria-label="Temperature chart"></div>
+      <p class="legend muted">
+        <span class="sw exc"></span> above {{ d.threshold_c }}°C (alert) ·
+        <span class="sw gap"></span> no data (gap) · ▲ single spike, not an alert · ✕ sensor error
+      </p>
+    }
+  </section>
+
+  <div class="facts">
+    <section class="panel">
+      <h2>Excursions above {{ d.threshold_c }}°C</h2>
+      @if (d.excursions.length === 0) {
+        <p class="muted">None in this period.</p>
+      } @else {
+        <ul class="list">
+          @for (e of d.excursions; track e.start_local) {
+            <li>
+              <span class="pill red">{{ e.is_open ? 'Ongoing' : 'Recovered' }}</span>
+              <strong>{{ e.start_local | date: 'EEE d MMM HH:mm' }}</strong> →
+              <strong>{{ e.end_local | date: 'EEE d MMM HH:mm' }}</strong>
+              <div class="muted">
+                {{ fmtDuration(e.duration_minutes) }} · peak {{ e.peak_c | number: '1.1-1' }}°C ·
+                {{ e.n_readings }} readings · {{ e.logger }}
+              </div>
+            </li>
+          }
+        </ul>
+        <a mat-stroked-button [href]="csvUrl()" class="no-print"
+          ><mat-icon>download</mat-icon> Inspector CSV</a
+        >
+      }
+    </section>
+
+    <section class="panel">
+      <h2>Data quality</h2>
+      <ul class="list">
+        @for (g of d.gaps; track g.start_local) {
+          <li>
+            <span class="pill amber">Gap</span>
+            {{ g.start_local | date: 'EEE d MMM HH:mm' }} →
+            {{ g.end_local | date: 'EEE d MMM HH:mm' }}
+            <div class="muted">
+              {{ fmtDuration(g.duration_minutes) }} between readings · {{ g.logger }}
+            </div>
+          </li>
+        }
+        @if (errCount()) {
+          <li>
+            <span class="pill amber">ERR</span> {{ errCount() }} sensor error{{
+              errCount() > 1 ? 's' : ''
+            }}
+            (no value recorded)
+          </li>
+        }
+        @for (s of d.spikes; track s.ts_local) {
+          <li>
+            <span class="pill grey">Spike</span>
+            {{ s.ts_local | date: 'EEE d MMM HH:mm' }} · {{ s.temp_c | number: '1.1-1' }}°C
+            <div class="muted">Single reading, e.g. a door opening. Not an alert.</div>
+          </li>
+        }
+        @if (!d.gaps.length && !errCount() && !d.spikes.length) {
+          <li class="muted">No gaps, sensor errors or spikes.</li>
+        }
+      </ul>
+    </section>
+  </div>
+}

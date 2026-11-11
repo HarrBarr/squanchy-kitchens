@@ -1,0 +1,39 @@
+<mat-toolbar class="app-bar">
+  <a routerLink="/" class="brand" aria-label="Squanchy Kitchens home">
+    <mat-icon aria-hidden="true">kitchen</mat-icon>
+    <span>Squanchy Kitchens</span>
+  </a>
+  <span class="spacer"></span>
+  <nav class="nav-wide" aria-label="Main">
+    <a
+      mat-button
+      routerLink="/"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      >Dashboard</a
+    >
+    <a mat-button routerLink="/report" routerLinkActive="active">Inspector report</a>
+    <a mat-button routerLink="/registry" routerLinkActive="active">Logger registry</a>
+  </nav>
+  <button mat-flat-button class="upload-btn" (click)="openUpload()">
+    <mat-icon>upload_file</mat-icon>
+    <span class="upload-label">Upload</span>
+  </button>
+</mat-toolbar>
+
+<main class="page">
+  <router-outlet />
+</main>
+
+<!-- Phone: bottom navigation, thumb-reachable -->
+<nav class="nav-bottom" aria-label="Main">
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+    <mat-icon>dashboard</mat-icon><span>Fridges</span>
+  </a>
+  <a routerLink="/report" routerLinkActive="active">
+    <mat-icon>assignment</mat-icon><span>Report</span>
+  </a>
+  <a routerLink="/registry" routerLinkActive="active">
+    <mat-icon>sensors</mat-icon><span>Registry</span>
+  </a>
+</nav>

@@ -1,0 +1,28 @@
+# Container-only development with hot reload:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build  -> http://localhost:4200
+# MySQL still is NOT published on 3306. To inspect it from the host, add
+#   ports: ["3307:3306"]
+# under services.mysql yourself (see the dev guide, section 8.2).
+services:
+  api:
+    command: ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      APP_ENV: development
+    ports:
+      - "8000:8000"  # OpenAPI at http://localhost:8000/api/docs
+    volumes:
+      - ./data:/data/seed:ro
+      - uploads:/data/uploads
+      - ./backend:/app
+
+  web:
+    build:
+      context: ./frontend
+      target: dev
+    image: squanchy-kitchens-web-dev
+    container_name: squanchy-kitchens-web-dev
+    ports: !override
+      - "4200:4200"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # keep the image's Linux node_modules, not the host's

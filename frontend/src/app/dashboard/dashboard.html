@@ -1,0 +1,110 @@
+<div class="page-head">
+  <div>
+    <h1>How every fridge is doing</h1>
+    <div class="sub">
+      Food-safety limit {{ data()?.threshold_c ?? 5 }}°C · times in Asia/Jerusalem
+    </div>
+  </div>
+</div>
+
+<div class="toolbar-row">
+  <div class="period-nav" role="group" aria-label="Week">
+    <button mat-icon-button (click)="shiftWeek(-7)" [disabled]="!data()" aria-label="Previous week">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <div class="label">
+      {{ data()?.period_label ?? '…' }}
+      @if (data(); as d) {
+        <small>{{ d.period_from | date: 'd MMM' }} – {{ d.period_to | date: 'd MMM yyyy' }}</small>
+      }
+    </div>
+    <button mat-icon-button (click)="shiftWeek(7)" [disabled]="!data()" aria-label="Next week">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+  @if (from()) {
+    <button mat-button (click)="latest()">Latest week</button>
+  }
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Branch</mat-label>
+    <mat-select [value]="branch()" (valueChange)="setBranch($event)">
+      <mat-option [value]="null">All branches</mat-option>
+      @for (b of branches(); track b.id) {
+        <mat-option [value]="b.name">{{ b.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+</div>
+
+@if (data(); as d) {
+  <div class="counts" aria-label="Summary">
+    <span class="pill red">{{ d.counts.red }} above 5°C</span>
+    <span class="pill amber">{{ d.counts.amber }} check data</span>
+    <span class="pill green">{{ d.counts.green }} OK</span>
+    @if (d.counts.grey) {
+      <span class="pill grey">{{ d.counts.grey }} no data</span>
+    }
+  </div>
+}
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+@if (error()) {
+  <div class="state error" role="alert">
+    <mat-icon>cloud_off</mat-icon>
+    <p>{{ error() }}</p>
+  </div>
+} @else if (data(); as d) {
+  @if (d.fridges.length === 0) {
+    <div class="state">
+      <mat-icon>sensors_off</mat-icon>
+      <p>No fridges yet. Add a logger in the <a routerLink="/registry">Logger registry</a>.</p>
+    </div>
+  } @else {
+    @if (!hasReadings()) {
+      <div class="state">
+        <mat-icon>upload_file</mat-icon>
+        <p>No readings for {{ d.period_label }}.</p>
+        <button mat-flat-button (click)="upload()">Upload logger files</button>
+      </div>
+    }
+    <div class="grid">
+      @for (f of d.fridges; track f.fridge_id) {
+        @let c = colourFor(f);
+        <a
+          class="card {{ c }}"
+          [routerLink]="['/fridges', f.fridge_id]"
+          [queryParams]="detailParams()"
+        >
+          <div class="top">
+            <div>
+              <div class="branch">{{ f.branch }}</div>
+              <div class="fridge">{{ f.fridge }}</div>
+            </div>
+            <span class="pill {{ c }}">{{ label[c] }}</span>
+          </div>
+          <div class="temp">
+            {{ fmtTemp(f.last_temp_c) }}
+            @if (f.ongoing) {
+              <span class="ongoing">Ongoing</span>
+            }
+          </div>
+          <div class="reason">{{ f.reason }}</div>
+          <div class="foot">
+            @if (f.last_reading_local) {
+              <span>Last {{ f.last_reading_local | date: 'EEE d MMM HH:mm' }}</span>
+            }
+            <span>{{ f.loggers.join(', ') }}</span>
+            @if (f.spike_count) {
+              <span title="Single readings above 5°C, e.g. a door opening. Not an alert.">
+                {{ f.spike_count }} spike{{ f.spike_count > 1 ? 's' : '' }}
+              </span>
+            }
+          </div>
+        </a>
+      }
+    </div>
+  }
+}

@@ -1,0 +1,14 @@
+.small {
+  font-size: 12px;
+}
+.print-only {
+  display: none;
+}
+@media print {
+  .print-only {
+    display: block;
+  }
+}
+td a {
+  color: inherit;
+}
