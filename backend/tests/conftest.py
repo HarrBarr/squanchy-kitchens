@@ -48,7 +48,9 @@ TEST_SCHEMA = "squanchy_kitchens_test"
 def engine(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Engine]:
     url = os.environ.get("TEST_DATABASE_URL")
     if url:
-        server = make_url(url).set(database=None)
+        # Connect to the always-present system schema to create/drop the test schema.
+        # (URL.set(database=None) does not clear the name in SQLAlchemy 2.1.)
+        server = make_url(url).set(database="mysql")
         admin = create_engine(server)
         with admin.begin() as c:
             c.execute(text(f"DROP DATABASE IF EXISTS {TEST_SCHEMA}"))
