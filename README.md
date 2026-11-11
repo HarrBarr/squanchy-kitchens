@@ -71,8 +71,7 @@ There is no public sign-up. On first start the API creates the admin, and with t
 **These credentials and the `JWT_SECRET` default are for a local demo only. They are
 published in this public repository.** A real deployment must set `ADMIN_PASSWORD` and
 `JWT_SECRET` (and `SEED_DEMO_DATA=false`) in the environment, and Summer must change her
-password before any real Ministry data goes in. The sign-in page lists the demo logins only
-while the stack runs on these defaults.
+password before any real Ministry data goes in.
 
 What each role can do (the API enforces all of it; the UI only hides what you cannot use):
 

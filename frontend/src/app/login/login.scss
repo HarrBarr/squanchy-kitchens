@@ -60,16 +60,3 @@
 .small {
   font-size: 12px;
 }
-.demo {
-  padding: 16px 20px;
-  .demo-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 4px 0 8px;
-  }
-  code {
-    font-family: var(--sk-font-mono);
-    color: var(--sk-accent);
-  }
-}

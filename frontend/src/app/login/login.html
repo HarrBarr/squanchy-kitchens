@@ -55,33 +55,4 @@
     </button>
     <p class="muted small">Forgot your password? Ask Summer to reset it from the Users screen.</p>
   </form>
-
-  @if (demo()) {
-    <section class="demo glass" aria-label="Demo accounts">
-      <div class="eyebrow">Demo accounts (local demo only)</div>
-      <div class="demo-row">
-        <button mat-stroked-button type="button" (click)="useDemo('admin', 'admin2026#')">
-          admin · Summer (all branches)
-        </button>
-        <button
-          mat-stroked-button
-          type="button"
-          (click)="useDemo('manager.rishon', 'manager2026#')"
-        >
-          manager.rishon
-        </button>
-        <button
-          mat-stroked-button
-          type="button"
-          (click)="useDemo('manager.telaviv', 'manager2026#')"
-        >
-          manager.telaviv
-        </button>
-      </div>
-      <p class="muted small">
-        Admin password <code>admin2026#</code>. Every branch has a manager
-        (<code>manager.haifa</code>, <code>manager.ashdod</code>, …) with <code>manager2026#</code>.
-      </p>
-    </section>
-  }
 </div>

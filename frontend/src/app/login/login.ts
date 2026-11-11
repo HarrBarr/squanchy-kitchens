@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import { Component, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -34,14 +33,6 @@ export class LoginPage {
   readonly hide = signal(true);
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
-  /** Demo logins are listed only while the stack runs on the published demo defaults. */
-  readonly demo = signal(false);
-
-  constructor() {
-    inject(HttpClient)
-      .get<{ demo_accounts?: boolean }>('/api/health')
-      .subscribe({ next: (h) => this.demo.set(!!h.demo_accounts), error: () => undefined });
-  }
 
   submit(): void {
     if (!this.username.trim() || !this.password || this.busy()) return;
@@ -58,10 +49,5 @@ export class LoginPage {
         this.error.set(errorMessage(e));
       },
     });
-  }
-
-  useDemo(username: string, password: string): void {
-    this.username = username;
-    this.password = password;
   }
 }
