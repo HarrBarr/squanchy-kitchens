@@ -34,8 +34,19 @@ def bare(engine, monkeypatch, capsys):
         yield s
 
 
+def fresh(db: Session) -> Session:
+    """End the test session's transaction so it sees the script's commits (MySQL's
+    REPEATABLE READ would otherwise keep the snapshot from the first read)."""
+    db.rollback()
+    return db
+
+
+def count_users(db: Session) -> int:
+    return fresh(db).scalar(select(func.count(User.id))) or 0
+
+
 def user(db: Session, username: str) -> User:
-    db.expire_all()
+    fresh(db)
     u = db.scalar(select(User).where(User.username == username))
     assert u is not None
     return u
@@ -46,7 +57,7 @@ def test_creates_admin_and_one_manager_per_branch(bare, monkeypatch, capsys):
     monkeypatch.setenv("DEMO_MANAGER_PASSWORD", "branch-pass-1")
     assert seed_users.main([]) == 0
     out = capsys.readouterr().out
-    assert bare.scalar(select(func.count(User.id))) == 13
+    assert count_users(bare) == 13
     admin = user(bare, "admin")
     assert (admin.role, admin.branch_id, admin.full_name) == ("admin", None, "Summer Smith")
     assert verify_password("summer-pass-1", admin.password_hash)
@@ -67,7 +78,7 @@ def test_idempotent_and_never_overwrites_without_reset(bare, monkeypatch, capsys
     out = capsys.readouterr().out
     assert "Nothing changed" in out and "different-2" not in out
     assert verify_password("summer-pass-1", user(bare, "admin").password_hash)
-    assert bare.scalar(select(func.count(User.id))) == 13
+    assert count_users(bare) == 13
 
 
 def test_reset_passwords(bare, monkeypatch):
@@ -79,7 +90,7 @@ def test_reset_passwords(bare, monkeypatch):
     seed_users.main(["--reset-passwords"])
     assert verify_password("summer-pass-2", user(bare, "admin").password_hash)
     assert verify_password("branch-pass-2", user(bare, "manager.haifa").password_hash)
-    resets = bare.scalar(
+    resets = fresh(bare).scalar(
         select(func.count(AuditLog.id)).where(AuditLog.action == "user.password_reset")
     )
     assert resets == 13
@@ -106,10 +117,10 @@ def test_env_format_for_a_dotenv_file(bare, capsys):
 def test_must_change_and_admin_only_managers_only(bare, monkeypatch):
     monkeypatch.setenv("ADMIN_PASSWORD", "summer-pass-1")
     seed_users.main(["--admin-only"])
-    assert bare.scalar(select(func.count(User.id))) == 1
+    assert count_users(bare) == 1
     monkeypatch.setenv("DEMO_MANAGER_PASSWORD", "branch-pass-1")
     seed_users.main(["--managers-only", "--must-change"])
-    assert bare.scalar(select(func.count(User.id))) == 13
+    assert count_users(bare) == 13
     assert user(bare, "manager.telaviv").must_change_password is True
     assert user(bare, "admin").must_change_password is False
 
@@ -117,7 +128,7 @@ def test_must_change_and_admin_only_managers_only(bare, monkeypatch):
 def test_refuses_without_a_password_source(bare):
     with pytest.raises(SystemExit, match="ADMIN_PASSWORD is not set"):
         seed_users.main([])
-    assert bare.scalar(select(func.count(User.id))) == 0
+    assert count_users(bare) == 0
 
 
 def test_refuses_short_passwords(bare, monkeypatch):
@@ -134,7 +145,7 @@ def test_branch_missing_from_registry_is_skipped(bare, monkeypatch, capsys):
         del seed_users.BRANCH_MANAGERS["Nowhere"]
     out = capsys.readouterr().out
     assert "manager.nowhere" in out and "skipped: branch not in the registry yet" in out
-    assert bare.scalar(select(User).where(User.username == "manager.nowhere")) is None
+    assert fresh(bare).scalar(select(User).where(User.username == "manager.nowhere")) is None
 
 
 def test_startup_seeding_uses_the_same_functions(bare):
