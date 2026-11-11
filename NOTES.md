@@ -2,11 +2,11 @@
 
 ## Time spent
 
-- About 7 hours of building, in one day (11 Nov 2026), with AI assistants (see
-  [AI tools](#ai-tools)). The git history runs from 15:11 to 21:15; the first build before the
-  first commit took about an hour. The planning discussion with Grok came before that and is
-  not counted here.
-- Roughly: parser, rules engine and golden test, data model, API, the three screens and
+- About 8 hours in total, with AI assistants (see [AI tools](#ai-tools)): about 1 hour of
+  planning with Grok, then about 7 hours of building on 11 Nov 2026. The git history runs
+  from 15:11 to 21:15; the first build before the first commit took about an hour.
+- Roughly: planning the stack and architecture and writing the development guide with Grok
+  (~1 h); parser, rules engine and golden test, data model, API, the three screens and
   Docker (~2 h); fixes from using the app myself: dashboard week logic, ongoing fridges, drag
   and drop (~1 h); brand theme and the phone layout (~1 h); sign-in, roles and the
   flag/void review (~1.5 h); testing the phone flow end to end, removing secrets from the
