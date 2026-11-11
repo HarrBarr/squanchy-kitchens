@@ -115,7 +115,8 @@ export class UploadsPage {
     );
   }
 
-  void(u: UploadRecord): void {
+  /** Named voidUpload, not void: in an Angular template `void(u)` is the void operator. */
+  voidUpload(u: UploadRecord): void {
     this.ask({
       title: 'Void this upload',
       message: `${u.original_filename} will be hidden from the dashboard, charts and reports, and excursions recomputed without it. The file and its rows are kept for the audit trail.`,

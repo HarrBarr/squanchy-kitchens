@@ -562,6 +562,18 @@ div.mat-mdc-autocomplete-panel {
   .mat-mdc-dialog-container {
     --mat-dialog-container-shape: 20px;
   }
+
+  // Snackbars ("Flagged for review.", "Upload voided.") must sit above the floating bottom
+  // nav: at the default position they covered it and blocked the tabs for 4 seconds.
+  .mat-mdc-snack-bar-container {
+    margin-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    pointer-events: auto;
+  }
+  // The overlay pane around it stretches over the nav too: let taps fall through it.
+  .cdk-overlay-pane:has(> .mat-mdc-snack-bar-container),
+  .mat-mdc-snack-bar-handset {
+    pointer-events: none;
+  }
   .mat-mdc-dialog-content {
     padding: 0 16px;
   }
