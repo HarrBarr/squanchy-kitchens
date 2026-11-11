@@ -55,6 +55,14 @@
   error. Green = everything else, isolated spikes included, with a quiet "n spikes"
   footnote. I added **grey** for "no readings in this period", so an empty week isn't shown
   as healthy.
+- **A fridge still above the limit stays red until a newer file shows it recovered.** The
+  dashboard opens on the newest week, and files arrive one at a time. Without this, a fridge
+  that was still failing at its last uploaded reading (Rishon cream cakes, Be'er Sheva dairy)
+  turned grey "awaiting upload" as soon as any other logger's next-week file came in. A
+  missing file must never make a failing fridge look fine. The card keeps the "Ongoing"
+  badge, and hovering its label shows "still above 5°C at last reading, Sun 20 Sep 23:45".
+  Waiting fridges that were fine say "Awaiting this week's file", and an incomplete week has
+  a banner linking to the previous complete one.
 - **The dashboard defaults to the ISO week of the latest reading**, not "this week". The
   demo data is from September, and Summer looks at the week she just uploaded.
 - **A small registry screen** lets her record a move or add a new logger, such as TL-9999,

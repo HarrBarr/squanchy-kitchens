@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Api, errorMessage } from '../core/api';
 import { addDays, cardLabel, colourFor, fmtTemp, incompletePeriod } from '../core/format';
@@ -23,6 +24,7 @@ import { UploadLauncher } from '../upload/upload-launcher';
     MatFormFieldModule,
     MatSelectModule,
     MatProgressBarModule,
+    MatTooltipModule,
   ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',

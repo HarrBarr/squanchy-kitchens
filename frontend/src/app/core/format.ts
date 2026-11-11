@@ -8,9 +8,12 @@ import { Colour, Dashboard, FridgeCard } from './models';
  *  grey  - no readings at all in the period
  */
 export function colourFor(
-  c: Pick<FridgeCard, 'excursion_count' | 'gap_count' | 'error_count' | 'last_reading_local'>,
+  c: Pick<FridgeCard, 'excursion_count' | 'gap_count' | 'error_count' | 'last_reading_local'> &
+    Partial<Pick<FridgeCard, 'still_above'>>,
 ): Colour {
-  if (c.excursion_count > 0) return 'red';
+  // Red also when the last uploaded reading was still above the limit and no newer file
+  // has shown a recovery yet: a missing file must never make a failing fridge look fine.
+  if (c.excursion_count > 0 || c.still_above) return 'red';
   if (c.gap_count > 0 || c.error_count > 0) return 'amber';
   if (!c.last_reading_local) return 'grey';
   return 'green';

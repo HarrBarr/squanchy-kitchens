@@ -29,6 +29,9 @@ describe('colourFor', () => {
   it('is green otherwise, spikes included (they are not in the summary counts)', () => {
     expect(colourFor(base)).toBe('green');
   });
+  it('stays red when still above the limit at the last uploaded reading', () => {
+    expect(colourFor({ ...base, last_reading_local: null, still_above: true })).toBe('red');
+  });
   it('is grey with no readings', () => {
     expect(colourFor({ ...base, last_reading_local: null })).toBe('grey');
   });

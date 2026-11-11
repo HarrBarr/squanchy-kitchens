@@ -98,7 +98,14 @@
               <div class="branch">{{ f.branch }}</div>
               <div class="fridge">{{ f.fridge }}</div>
             </div>
-            <span class="pill {{ c }}">{{ cardLabel(f, c) }}</span>
+            <span
+              class="pill {{ c }}"
+              [matTooltip]="f.still_above_note ?? ''"
+              [matTooltipDisabled]="!f.still_above_note"
+              matTooltipPosition="above"
+              [attr.data-testid]="f.still_above ? 'still-above-label' : null"
+              >{{ cardLabel(f, c) }}</span
+            >
           </div>
           <div class="temp">
             {{ fmtTemp(f.last_temp_c) }}
@@ -110,6 +117,8 @@
           <div class="foot">
             @if (f.last_reading_local) {
               <span>Last {{ f.last_reading_local | date: 'EEE d MMM HH:mm' }}</span>
+            } @else if (f.still_above && f.last_seen_local) {
+              <span>Last uploaded reading {{ f.last_seen_local | date: 'EEE d MMM HH:mm' }}</span>
             }
             <span>{{ f.loggers.join(', ') }}</span>
             @if (f.spike_count) {

@@ -3,6 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MatTooltipHarness } from '@angular/material/tooltip/testing';
 import { routes } from './app.routes';
 
 /** Smoke test: each screen renders its empty state with an empty backend. */
@@ -24,6 +26,13 @@ describe('routes', () => {
   };
 
   async function render(url: string, responses: Record<string, object>): Promise<string> {
+    return (await renderHarness(url, responses)).routeNativeElement?.textContent ?? '';
+  }
+
+  async function renderHarness(
+    url: string,
+    responses: Record<string, object>,
+  ): Promise<RouterTestingHarness> {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(url);
     await harness.fixture.whenStable();
@@ -32,7 +41,7 @@ describe('routes', () => {
     }
     await harness.fixture.whenStable();
     http.verify();
-    return harness.routeNativeElement?.textContent ?? '';
+    return harness;
   }
 
   it('dashboard: no fridges yet', async () => {
@@ -65,6 +74,8 @@ describe('routes', () => {
       colour,
       ongoing: false,
       awaiting_upload: awaiting,
+      still_above: false,
+      still_above_note: null,
       last_seen_local: '2026-09-20T23:45:00',
       reason: awaiting ? "Awaiting this week's file · last reading Sun 20 Sep 23:45" : 'OK',
       last_temp_c: awaiting ? null : 3.5,
@@ -96,5 +107,56 @@ describe('routes', () => {
     expect(text).toContain('See 2026-W38');
     expect(text).toContain('Awaiting upload');
     expect(text).not.toContain('No readings in this period');
+  });
+
+  it('dashboard: a fridge still above 5°C at its last upload stays red, with a hover note', async () => {
+    const rishon = {
+      fridge_id: 7,
+      branch: 'Rishon LeZion',
+      fridge: 'Cream cakes',
+      loggers: ['TL-0388'],
+      colour: 'red',
+      ongoing: true,
+      awaiting_upload: true,
+      still_above: true,
+      still_above_note: 'still above 5°C at last reading, Sun 20 Sep 23:45',
+      last_seen_local: '2026-09-20T23:45:00',
+      reason: "Ongoing 11.5°C peak since Mon 14 Sep 06:15 · awaiting this week's file",
+      last_temp_c: 11.2,
+      last_reading_local: null,
+      excursion_count: 0,
+      gap_count: 0,
+      error_count: 0,
+      spike_count: 0,
+      peak_c: 11.5,
+    };
+    const harness = await renderHarness('/', {
+      '/api/branches': [],
+      '/api/dashboard': {
+        ...period,
+        period_from: '2026-09-21',
+        period_to: '2026-09-27',
+        period_label: '2026-W39',
+        counts: { red: 1, amber: 0, green: 0, grey: 0 },
+        fridges_total: 1,
+        fridges_with_readings: 0,
+        previous_period_from: '2026-09-14',
+        previous_period_to: '2026-09-20',
+        previous_period_label: '2026-W38',
+        fridges: [rishon],
+      },
+    });
+    const el = harness.routeNativeElement!;
+    expect(el.querySelector('.card')!.classList).toContain('red');
+    expect(el.querySelector('.ongoing')?.textContent).toContain('Ongoing');
+    expect(el.textContent).toContain('Last uploaded reading Sun 20 Sep 23:45');
+
+    const loader = TestbedHarnessEnvironment.loader(harness.fixture);
+    const tooltip = await loader.getHarness(MatTooltipHarness);
+    expect(await (await tooltip.host()).text()).toBe('Above 5°C');
+    await tooltip.show();
+    expect(await tooltip.getTooltipText()).toBe(
+      'still above 5°C at last reading, Sun 20 Sep 23:45',
+    );
   });
 });

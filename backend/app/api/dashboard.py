@@ -34,6 +34,10 @@ class FridgeCard(BaseModel):
     ongoing: bool
     # Grey cards: the fridge has older readings but this period's file is not uploaded yet.
     awaiting_upload: bool
+    # Red carried over from an earlier period: the fridge's last uploaded reading was still
+    # above the limit (open excursion) and no newer file has shown it recover.
+    still_above: bool
+    still_above_note: str | None  # hover text on the card label
     last_seen_local: datetime | None  # newest reading up to the end of the period
     reason: str
     last_temp_c: float | None
@@ -166,6 +170,14 @@ def dashboard(
             .group_by(Reading.fridge_id)
         ).all()
     )
+    # Excursions still open at the fridge's last reading before this period started.
+    open_before: dict[int, Excursion] = {}
+    for e in db.scalars(
+        select(Excursion)
+        .where(Excursion.is_open.is_(True), Excursion.end_utc < period.start_utc)
+        .order_by(Excursion.end_utc)
+    ):
+        open_before[e.fridge_id] = e  # latest one wins
     spikes: dict[int, int] = defaultdict(int)
     for _, s in period_spikes(db, settings, period):
         spikes[s.fridge_id] += 1
@@ -176,6 +188,17 @@ def dashboard(
         lst = last.get(f.id)
         ongoing = any(e.is_open for e in exc)
         peak = max((e.peak_c for e in exc), default=None)
+        carried = open_before.get(f.id)
+        # Only while nothing newer was uploaded for this fridge: a newer file either extends
+        # the excursion into this period (red as usual) or shows the recovery.
+        still_above = (
+            not exc
+            and lst is None
+            and carried is not None
+            and last_seen.get(f.id) == carried.end_local
+        )
+        still_above_note = None
+        still_temp = None
         if exc:
             colour = "red"
             if ongoing:
@@ -190,6 +213,22 @@ def dashboard(
                     f"{float(e.peak_c):.1f}°C for {fmt_duration(e.duration_minutes)} on "
                     f"{e.start_local:%a %d %b %H:%M}"
                 )
+        elif still_above:
+            assert carried is not None
+            colour, ongoing, peak = "red", True, carried.peak_c
+            still_above_note = (
+                f"still above {settings.alert_threshold_c:g}°C at last reading, "
+                f"{carried.end_local:%a %d %b %H:%M}"
+            )
+            reason = (
+                f"Ongoing {float(carried.peak_c):.1f}°C peak since "
+                f"{carried.start_local:%a %d %b %H:%M} · awaiting this week's file"
+            )
+            still_temp = db.scalar(
+                select(Reading.temp_c).where(
+                    Reading.fridge_id == f.id, Reading.ts_utc == carried.end_utc
+                )
+            )
         elif gp or err:
             colour = "amber"
             bits = []
@@ -226,9 +265,11 @@ def dashboard(
                 colour=colour,
                 ongoing=ongoing,
                 awaiting_upload=lst is None and f.id in last_seen,
+                still_above=still_above,
+                still_above_note=still_above_note,
                 last_seen_local=last_seen.get(f.id),
                 reason=reason,
-                last_temp_c=_f(lst[1]) if lst else None,
+                last_temp_c=_f(lst[1]) if lst else _f(still_temp),
                 last_reading_local=lst[0] if lst else None,
                 excursion_count=len(exc),
                 gap_count=len(gp),

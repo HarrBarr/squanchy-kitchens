@@ -262,10 +262,10 @@ def test_one_early_upload_for_a_new_week_does_not_blank_the_dashboard(client):
     for name in ("TL-0231_2026-W38.csv", "TL-0232_2026-W38.csv"):
         assert _post(client, name).status_code == 200
     w39 = (
-        "Serial: TL-0231\nModel: LogiTemp LT-1 (legacy)\nUnits: F\nDate,Temperature\n"
-        "21/09/2026 00:00,38.2\n21/09/2026 00:15,42.8\n21/09/2026 00:30,44.6\n"
-        "21/09/2026 00:45,38.1\n"
-    ).encode()
+        b"Serial: TL-0231\nModel: LogiTemp LT-1 (legacy)\nUnits: F\nDate,Temperature\n"
+        b"21/09/2026 00:00,38.2\n21/09/2026 00:15,42.8\n21/09/2026 00:30,44.6\n"
+        b"21/09/2026 00:45,38.1\n"
+    )
     r = client.post(
         "/api/uploads",
         files={"file": ("TL-0231_2026-W39.csv", w39, "text/csv")},
@@ -296,3 +296,56 @@ def test_one_early_upload_for_a_new_week_does_not_blank_the_dashboard(client):
     w38 = client.get("/api/dashboard", params={"from": "2026-09-14", "to": "2026-09-20"}).json()
     assert w38["fridges_with_readings"] == 2
     assert card(w38, "Haifa", "Dairy")["colour"] == "amber"  # its 4 ERR readings
+
+
+def test_ongoing_fridge_stays_red_until_a_newer_file_shows_recovery(client):
+    """Rishon cream cakes was still above 5°C at its last W38 reading. With the dashboard on
+    W39 (because another logger's W39 file arrived first), it must stay red with an
+    'ongoing' badge, not turn into a grey 'awaiting upload' card, until a newer file for it
+    shows the recovery."""
+    for name in ("TL-0388_2026-W38.csv", "TL-0901_2026-W38.csv"):
+        assert _post(client, name).status_code == 200
+    haifa_w39 = (
+        b"Serial: TL-0231\nModel: LogiTemp LT-1 (legacy)\nUnits: F\nDate,Temperature\n"
+        b"21/09/2026 00:00,38.2\n21/09/2026 00:15,38.4\n"
+    )
+    client.post(
+        "/api/uploads",
+        files={"file": ("TL-0231_2026-W39.csv", haifa_w39, "text/csv")},
+        data={"logger_id": "TL-0231"},
+    )
+
+    d = client.get("/api/dashboard").json()
+    assert d["period_label"] == "2026-W39"
+    rishon = card(d, "Rishon LeZion", "Cream cakes")
+    assert (rishon["colour"], rishon["ongoing"], rishon["still_above"]) == ("red", True, True)
+    assert rishon["still_above_note"] == "still above 5°C at last reading, Sun 20 Sep 23:45"
+    assert rishon["reason"].startswith("Ongoing 11.5°C peak since Mon 14 Sep 06:15")
+    assert rishon["last_temp_c"] > 5 and rishon["last_reading_local"] is None
+    assert d["fridges"][0]["fridge_id"] == rishon["fridge_id"]  # call this one first
+    assert d["counts"]["red"] == 1
+    # Ashdod's excursion recovered in W38: nothing to carry over.
+    ashdod = card(d, "Ashdod", "Dairy")
+    assert (ashdod["colour"], ashdod["still_above"], ashdod["still_above_note"]) == (
+        "grey",
+        False,
+        None,
+    )
+    # W38 itself still shows Rishon's excursion the normal way.
+    w38 = client.get("/api/dashboard", params={"from": "2026-09-14", "to": "2026-09-20"}).json()
+    assert card(w38, "Rishon LeZion", "Cream cakes")["still_above"] is False
+
+    # A newer Rishon file shows the fridge back under 5°C: no longer carried over.
+    rishon_w39 = (
+        b"Serial: TL-0388\nModel: LogiTemp LT-2\nUnits: C\ndatetime,temperature\n"
+        b"2026-09-21T00:00:00,4.3\n2026-09-21T00:15:00,4.1\n"
+    )
+    r = client.post(
+        "/api/uploads",
+        files={"file": ("TL-0388_2026-W39.csv", rishon_w39, "text/csv")},
+        data={"logger_id": "TL-0388"},
+    )
+    assert r.status_code == 200
+    d = client.get("/api/dashboard").json()
+    rishon = card(d, "Rishon LeZion", "Cream cakes")
+    assert (rishon["colour"], rishon["still_above"], rishon["ongoing"]) == ("green", False, False)

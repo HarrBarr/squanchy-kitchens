@@ -9,6 +9,11 @@ export interface FridgeCard {
   ongoing: boolean;
   /** Has older readings, but this period's file has not been uploaded yet. */
   awaiting_upload: boolean;
+  /** Still above the limit at its last uploaded reading (from an earlier period) and no
+   *  newer file has shown it recover: stays red. */
+  still_above: boolean;
+  /** Hover text for the card label, e.g. "still above 5°C at last reading, Sun 20 Sep 23:45". */
+  still_above_note: string | null;
   last_seen_local: string | null;
   reason: string;
   last_temp_c: number | null;
