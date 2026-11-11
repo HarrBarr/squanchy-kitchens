@@ -35,12 +35,19 @@ cd squanchy-kitchens
 
 No Git? Download the ZIP from GitHub, unzip it and `cd` into the folder.
 
-### 2. Add the `.env` file you were given (optional)
+### 2. Add the env file you were given (optional)
 
-If you received a `.env` file (for example attached to an e-mail), save it in the
-`squanchy-kitchens` folder, next to `docker-compose.yml`, **before the first start**. If your
-mail client renamed it, rename it back to exactly `.env`. It holds the two sign-in passwords
-for your copy and is ignored by git:
+If you received a file with the sign-in passwords (for example `reviewer.env`, attached to
+an e-mail), save it in the `squanchy-kitchens` folder, next to `docker-compose.yml`, and
+**rename it to exactly `.env`**, **before the first start**. Docker Compose only reads a file
+with that name automatically. Rename it in your file manager, or from the `squanchy-kitchens`
+folder:
+
+```bash
+mv ~/Downloads/reviewer.env .env
+```
+
+It holds the two sign-in passwords for your copy, and git ignores it:
 
 ```bash
 ADMIN_PASSWORD=...
@@ -95,7 +102,7 @@ The branch managers share one password. The passwords are:
 ### If you started it before saving the `.env` file
 
 No problem: the accounts were created with generated passwords. To switch to the ones in
-your `.env`, save it as in step 2, then run the seeding script:
+your env file, save and rename it to `.env` as in step 2, then run the seeding script:
 
 ```bash
 docker compose up -d                                                  # restarts the API so it reads .env
