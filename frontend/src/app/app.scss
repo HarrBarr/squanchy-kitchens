@@ -101,6 +101,51 @@
   box-sizing: border-box;
 }
 
+.page.bare {
+  padding-bottom: 32px;
+}
+
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--sk-aur2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(255, 92, 168, 0.6);
+}
+
+.account-btn {
+  position: relative;
+  margin-left: 6px;
+  .avatar {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(245, 247, 255, 0.1);
+    border: 1px solid var(--sk-line);
+    font-family: var(--sk-font-display);
+    font-weight: 600;
+  }
+}
+.dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--sk-aur2);
+  box-shadow: 0 0 10px var(--sk-aur2);
+}
+
 .nav-bottom {
   position: fixed;
   bottom: 10px;
@@ -116,17 +161,27 @@
   box-shadow: var(--sk-highlight), var(--sk-shadow);
   z-index: 20;
 
-  a {
+  a,
+  button {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
     padding: 8px 0;
+    border: 0;
     border-radius: 18px;
+    background: none;
+    font: inherit;
     font-size: 11px;
     color: var(--sk-muted);
     text-decoration: none;
+    cursor: pointer;
+  }
+  .dot {
+    top: 6px;
+    right: calc(50% - 18px);
   }
   a.active {
     color: var(--sk-text);

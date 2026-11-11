@@ -235,6 +235,80 @@
   color: var(--sk-muted);
 }
 
+// Branch header (one branch) and per-branch upload strip (Summer).
+.branch-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background: var(--sk-glass);
+  border: 1px solid var(--sk-line);
+  h2 {
+    font-size: 20px;
+  }
+  .last {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    font-size: 13px;
+  }
+  .small {
+    font-size: 11px;
+  }
+  &.missing {
+    border-color: rgba(255, 196, 138, 0.45);
+    background: var(--sk-amber-bg);
+  }
+}
+.branch-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--sk-line);
+    background: rgba(245, 247, 255, 0.04);
+    color: var(--sk-text);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    &:hover {
+      border-color: rgba(245, 247, 255, 0.3);
+    }
+  }
+  .dot-s {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sk-green);
+    box-shadow: 0 0 6px var(--sk-green);
+  }
+  .when {
+    color: var(--sk-muted);
+    font-size: 11px;
+  }
+  .chip.missing {
+    border-color: rgba(255, 196, 138, 0.45);
+    background: var(--sk-amber-bg);
+    color: var(--sk-amber);
+    .dot-s {
+      background: var(--sk-amber);
+      box-shadow: 0 0 6px var(--sk-amber);
+    }
+  }
+}
+
 // ---------- phones (`mobileBreakpoint` on <body>) ----------
 :host-context(.mobileBreakpoint) {
   .toolbar-row mat-form-field {

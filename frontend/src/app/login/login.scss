@@ -1,0 +1,75 @@
+:host {
+  display: block;
+}
+.wrap {
+  max-width: 420px;
+  margin: 6vh auto 0;
+  display: grid;
+  gap: 16px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  .mark {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--sk-aurora);
+    box-shadow: 0 8px 24px rgba(106, 92, 255, 0.45);
+    color: #fff;
+  }
+  .name {
+    font-family: var(--sk-font-display);
+    font-size: 20px;
+    font-weight: 600;
+  }
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px;
+
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+  }
+  p {
+    margin: 4px 0 16px;
+  }
+}
+.submit {
+  height: 46px;
+  margin-top: 8px;
+}
+.error {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  margin: 4px 0;
+  border-radius: 12px;
+  background: var(--sk-red-bg);
+  color: var(--sk-red-text);
+}
+.small {
+  font-size: 12px;
+}
+.demo {
+  padding: 16px 20px;
+  .demo-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 8px;
+  }
+  code {
+    font-family: var(--sk-font-mono);
+    color: var(--sk-accent);
+  }
+}

@@ -14,9 +14,11 @@ import warnings
 from collections.abc import Iterator
 from pathlib import Path
 
-import pytest
+os.environ.setdefault("BCRYPT_ROUNDS", "4")  # fast hashing in tests only (prod: 12)
+
+import pytest  # noqa: E402
 from alembic.config import Config
-from sqlalchemy import Engine, create_engine, delete, text
+from sqlalchemy import Engine, create_engine, delete, select, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import Session, sessionmaker
@@ -98,12 +100,22 @@ def settings(tmp_path: Path) -> Settings:
     )
 
 
+def seed_users(session: Session) -> None:
+    """The admin (admin / admin2026#) and the 12 demo branch managers (manager2026#)."""
+    from app.bootstrap import seed_admin, seed_demo_managers
+
+    s = Settings(database_url="unused")
+    seed_admin(session, s)
+    seed_demo_managers(session, s)
+
+
 @pytest.fixture
 def db(engine: Engine) -> Iterator[Session]:
-    """A fresh database with only the registry seeded."""
+    """A fresh database with the registry, the admin and the demo managers seeded."""
     wipe(engine)
     session = sessionmaker(bind=engine, expire_on_commit=False)()
     seed_registry(session, (DATA / "loggers.csv").read_text(encoding="utf-8"))
+    seed_users(session)
     try:
         yield session
     finally:
@@ -132,7 +144,11 @@ def week_db(engine: Engine, tmp_path_factory: pytest.TempPathFactory) -> Iterato
     )
     session = sessionmaker(bind=engine, expire_on_commit=False)()
     seed_registry(session, (DATA / "loggers.csv").read_text(encoding="utf-8"))
-    results = seed_demo_files(session, s)
+    seed_users(session)
+    from app.storage.models import User
+
+    admin = session.scalar(select(User).where(User.username == "admin"))
+    results = seed_demo_files(session, s, admin)
     session.week_results = results  # type: ignore[attr-defined]
     try:
         yield session

@@ -9,7 +9,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Api, errorMessage } from '../core/api';
-import { LoggerInfo, UploadRecord } from '../core/models';
+import { LoggerInfo } from '../core/models';
+import { RouterLink } from '@angular/router';
+import { Auth } from '../core/auth';
 import { Refresh } from '../core/refresh';
 
 interface Draft {
@@ -35,6 +37,7 @@ function today(): string {
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    RouterLink,
   ],
   templateUrl: './registry.html',
   styleUrl: './registry.scss',
@@ -43,9 +46,9 @@ export class RegistryPage {
   private readonly api = inject(Api);
   private readonly snack = inject(MatSnackBar);
   private readonly refresh = inject(Refresh);
+  readonly auth = inject(Auth);
 
   readonly loggers = signal<LoggerInfo[]>([]);
-  readonly uploads = signal<UploadRecord[]>([]);
   readonly error = signal<string | null>(null);
   readonly busy = signal(false);
   draft: Draft = { code: '', branch: '', fridge: '', unit: 'C', assigned_from: today() };
@@ -69,7 +72,6 @@ export class RegistryPage {
       next: (l) => this.loggers.set(l),
       error: (e) => this.error.set(errorMessage(e)),
     });
-    this.api.uploads().subscribe({ next: (u) => this.uploads.set(u), error: () => undefined });
   }
 
   /** Earlier assignments (moves), for the History column. */

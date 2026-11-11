@@ -8,7 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Api, errorMessage, reportCsvUrl } from '../core/api';
+import { Api, errorMessage, saveBlob } from '../core/api';
+import { Auth } from '../core/auth';
 import { Branch, Report } from '../core/models';
 import { Refresh } from '../core/refresh';
 
@@ -39,13 +40,13 @@ export class ReportPage {
   readonly branches = signal<Branch[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly csvUrl = computed(() => {
-    const d = this.data();
-    return d ? reportCsvUrl({ from: d.period_from, to: d.period_to }, this.branch()) : '#';
-  });
+  readonly downloading = signal(false);
+  readonly auth = inject(Auth);
 
   constructor() {
-    this.api.branches().subscribe({ next: (b) => this.branches.set(b), error: () => undefined });
+    if (this.auth.isAdmin()) {
+      this.api.branches().subscribe({ next: (b) => this.branches.set(b), error: () => undefined });
+    }
     effect((onCleanup) => {
       this.refresh.version();
       const q = this.query();
@@ -71,6 +72,23 @@ export class ReportPage {
     const d = this.data();
     const base = d ? { from: d.period_from, to: d.period_to } : {};
     this.router.navigate([], { queryParams: { ...base, branch: this.branch(), ...params } });
+  }
+
+  /** CSV export (needs the Bearer token, so it is fetched, not linked). Audited server-side. */
+  downloadCsv(): void {
+    const d = this.data();
+    if (!d) return;
+    this.downloading.set(true);
+    this.api.downloadReportCsv({ from: d.period_from, to: d.period_to }, this.branch()).subscribe({
+      next: ({ blob, filename }) => {
+        saveBlob(blob, filename);
+        this.downloading.set(false);
+      },
+      error: (e) => {
+        this.error.set(errorMessage(e));
+        this.downloading.set(false);
+      },
+    });
   }
 
   print(): void {

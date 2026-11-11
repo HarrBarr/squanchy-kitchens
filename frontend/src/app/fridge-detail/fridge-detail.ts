@@ -6,7 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgxEchartsDirective } from 'ngx-echarts';
-import { Api, errorMessage, reportCsvUrl } from '../core/api';
+import { Api, errorMessage, saveBlob } from '../core/api';
 import { addDays, fmtDuration } from '../core/format';
 import { Series } from '../core/models';
 import { Refresh } from '../core/refresh';
@@ -82,8 +82,14 @@ export class FridgeDetailPage {
     return d ? { from: d.period_from, to: d.period_to } : {};
   }
 
-  csvUrl(): string {
+  downloadCsv(): void {
     const d = this.data();
-    return d ? reportCsvUrl({ from: d.period_from, to: d.period_to }, null, d.fridge_id) : '#';
+    if (!d) return;
+    this.api
+      .downloadReportCsv({ from: d.period_from, to: d.period_to }, null, d.fridge_id)
+      .subscribe({
+        next: ({ blob, filename }) => saveBlob(blob, filename),
+        error: (e) => this.error.set(errorMessage(e)),
+      });
   }
 }

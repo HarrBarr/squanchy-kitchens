@@ -32,6 +32,9 @@ describe('colourFor', () => {
   it('stays red when still above the limit at the last uploaded reading', () => {
     expect(colourFor({ ...base, last_reading_local: null, still_above: true })).toBe('red');
   });
+  it("is amber while this period's file has not been uploaded yet", () => {
+    expect(colourFor({ ...base, last_reading_local: null, awaiting_upload: true })).toBe('amber');
+  });
   it('is grey with no readings', () => {
     expect(colourFor({ ...base, last_reading_local: null })).toBe('grey');
   });
@@ -74,8 +77,9 @@ describe('incomplete week', () => {
     expect(incompletePeriod({ fridges_total: 31, fridges_with_readings: 0 })).toBe(false);
   });
   it('labels a waiting fridge "Awaiting upload", not "No data"', () => {
-    expect(cardLabel({ awaiting_upload: true }, 'grey')).toBe('Awaiting upload');
+    expect(cardLabel({ awaiting_upload: true }, 'amber')).toBe('Awaiting upload');
     expect(cardLabel({ awaiting_upload: false }, 'grey')).toBe('No data');
+    expect(cardLabel({ awaiting_upload: false }, 'amber')).toBe('Check data');
     expect(cardLabel({ awaiting_upload: false }, 'red')).toBe('Above 5°C');
   });
 });

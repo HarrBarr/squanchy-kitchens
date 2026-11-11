@@ -5,6 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Date,
     DateTime,
@@ -63,20 +64,81 @@ class LoggerAssignment(Base):
     fridge: Mapped[Fridge] = relationship()
 
 
+ROLE_ADMIN = "admin"
+ROLE_MANAGER = "branch_manager"
+
+UPLOAD_ACTIVE = "active"
+UPLOAD_FLAGGED = "flagged_mistake"
+UPLOAD_VOIDED = "voided"
+
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    full_name: Mapped[str] = mapped_column(String(120))
+    password_hash: Mapped[str] = mapped_column(String(128))
+    role: Mapped[str] = mapped_column(String(20))  # "admin" | "branch_manager"
+    branch_id: Mapped[int | None] = mapped_column(ForeignKey("branches.id"), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    branch: Mapped[Branch | None] = relationship()
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == ROLE_ADMIN
+
+
 class Upload(Base):
     __tablename__ = "uploads"
+    __table_args__ = (Index("ix_uploads_status", "status"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     logger_id: Mapped[int] = mapped_column(ForeignKey("loggers.id"))
+    # Branch the file's readings belong to (the assignment at its timestamps).
+    branch_id: Mapped[int | None] = mapped_column(ForeignKey("branches.id"), nullable=True)
     original_filename: Mapped[str] = mapped_column(String(255))
-    sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    sha256: Mapped[str] = mapped_column(String(64), index=True)
+    # Equal to sha256 while the upload is not voided, NULL once voided. Unique, so the
+    # same bytes cannot be imported twice, yet a voided file can be uploaded again
+    # (MySQL allows many NULLs in a unique index; it has no partial indexes).
+    active_sha256: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     stored_path: Mapped[str] = mapped_column(String(512))
     row_count: Mapped[int] = mapped_column(Integer, default=0)
     error_count: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[str] = mapped_column(String(20))
+    # Review lifecycle: active | flagged_mistake | voided (never physically deleted).
+    status: Mapped[str] = mapped_column(String(20), default=UPLOAD_ACTIVE)
     started_at: Mapped[datetime] = mapped_column(DateTime)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     note: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    uploaded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    flagged_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    flag_reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    flagged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    voided_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    voided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    void_reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     logger: Mapped[Logger] = relationship()
+    branch: Mapped[Branch | None] = relationship()
+    uploader: Mapped[User | None] = relationship(foreign_keys=[uploaded_by])
+    flagger: Mapped[User | None] = relationship(foreign_keys=[flagged_by])
+    voider: Mapped[User | None] = relationship(foreign_keys=[voided_by])
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_created", "created_at"),
+        Index("ix_audit_user_created", "user_id", "created_at"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    action: Mapped[str] = mapped_column(String(64))
+    entity_type: Mapped[str] = mapped_column(String(32))
+    entity_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    user: Mapped[User | None] = relationship()
 
 
 class Reading(Base):
@@ -94,6 +156,9 @@ class Reading(Base):
     raw_value: Mapped[str] = mapped_column(String(64))
     temp_c: Mapped[Decimal | None] = mapped_column(Numeric(6, 2), nullable=True)
     status: Mapped[str] = mapped_column(String(8))  # "ok" | "err"
+    # True when the upload that wrote this reading was voided and no earlier upload covers
+    # the timestamp. Hidden from every view and from excursion/gap recompute; never deleted.
+    is_voided: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Excursion(Base):

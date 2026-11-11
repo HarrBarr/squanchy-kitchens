@@ -394,6 +394,44 @@ div.mat-mdc-autocomplete-panel {
   border-radius: 999px;
 }
 
+// Account menu (rendered in an overlay, so styled globally).
+.account-menu {
+  .who {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 16px 12px;
+    min-width: 220px;
+    strong {
+      font-family: var(--sk-font-display);
+    }
+    span {
+      font-size: 12px;
+    }
+  }
+  .count {
+    margin-left: 8px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--sk-aur2);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .phone-only {
+    display: none;
+  }
+}
+.mobileBreakpoint .account-menu .phone-only {
+  display: flex;
+}
+
+// Destructive confirm (void).
+.btn-danger.mat-mdc-button-base {
+  --mat-button-filled-container-color: var(--sk-red);
+  --mat-button-filled-label-text-color: #fff;
+  font-weight: 600;
+}
+
 // ---------- phones: `mobileBreakpoint` is set on <body> by core/viewport.ts ----------
 // One column, full-width controls, consistent sizes, so every block lines up edge to edge.
 .mobileBreakpoint {

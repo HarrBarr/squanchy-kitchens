@@ -1,0 +1,136 @@
+<div class="page-head">
+  <div>
+    @if (review()) {
+      <div class="eyebrow">Needs Summer</div>
+      <h1>Pending <span class="aurora-text">review</span></h1>
+      <div class="sub">
+        Files a manager flagged as uploaded by mistake. Dismiss the flag, or void the file.
+      </div>
+    } @else {
+      <div class="eyebrow">{{ auth.isAdmin() ? 'All branches' : me()?.branch }}</div>
+      <h1>Up<span class="aurora-text">loads</span></h1>
+      <div class="sub">
+        Every logger file uploaded, by whom and when. Voided files stay listed for the audit trail.
+      </div>
+    }
+  </div>
+</div>
+
+@if (!review()) {
+  <div class="toolbar-row">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="half">
+      <mat-label>Status</mat-label>
+      <mat-select [value]="status()" (valueChange)="status.set($event)">
+        <mat-option [value]="null">All</mat-option>
+        <mat-option value="active">Active</mat-option>
+        <mat-option value="flagged_mistake">Flagged</mat-option>
+        <mat-option value="voided">Voided</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="half">
+      <mat-label>Logger</mat-label>
+      <input
+        matInput
+        [ngModel]="logger()"
+        (ngModelChange)="logger.set($event)"
+        placeholder="TL-0231"
+      />
+    </mat-form-field>
+  </div>
+}
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+@if (error()) {
+  <div class="state error" role="alert">
+    <mat-icon>error</mat-icon>
+    <p>{{ error() }}</p>
+  </div>
+} @else {
+  <section class="panel">
+    @if (rows().length === 0 && !loading()) {
+      <div class="state">
+        <mat-icon>{{ review() ? 'task_alt' : 'upload_file' }}</mat-icon>
+        <p>{{ review() ? 'Nothing waiting for review.' : 'No uploads match.' }}</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="data stack">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Status</th>
+              <th>Branch</th>
+              <th>Logger</th>
+              <th>Uploaded</th>
+              <th>By</th>
+              <th class="num">Rows</th>
+              <th>Notes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of rows(); track u.id) {
+              @let can = actions(u);
+              <tr [class.voided]="u.status === 'voided'">
+                <td data-label="File">
+                  <span class="file">{{ u.original_filename }}</span>
+                </td>
+                <td data-label="Status">
+                  <span
+                    class="pill"
+                    [class.green]="u.status === 'active'"
+                    [class.amber]="u.status === 'flagged_mistake'"
+                    [class.grey]="u.status === 'voided'"
+                    >{{ label[u.status] }}</span
+                  >
+                </td>
+                <td data-label="Branch">{{ u.branch ?? '—' }}</td>
+                <td data-label="Logger">{{ u.logger }}</td>
+                <td data-label="Uploaded (UTC)" class="mono">
+                  {{ u.started_at | date: 'd MMM yyyy HH:mm' }}
+                </td>
+                <td data-label="By">{{ u.uploaded_by ?? '—' }}</td>
+                <td class="num" data-label="Rows">{{ u.row_count }}</td>
+                <td class="note" data-label="Notes">
+                  @if (u.status === 'flagged_mistake') {
+                    <div><strong>Flagged</strong> by {{ u.flagged_by }}: {{ u.flag_reason }}</div>
+                  }
+                  @if (u.status === 'voided') {
+                    <div><strong>Voided</strong> by {{ u.voided_by }}: {{ u.void_reason }}</div>
+                  }
+                  @if (u.note) {
+                    <div class="muted">{{ u.note }}</div>
+                  }
+                </td>
+                <td class="actions">
+                  @if (can.flag && u.status === 'active') {
+                    <button mat-stroked-button (click)="flag(u)" data-testid="flag">
+                      <mat-icon>flag</mat-icon> Flag mistake
+                    </button>
+                  }
+                  @if (can.dismiss) {
+                    <button mat-button (click)="dismiss(u)" data-testid="dismiss">
+                      Dismiss flag
+                    </button>
+                  }
+                  @if (can.void) {
+                    <button
+                      mat-stroked-button
+                      class="btn-danger-outline"
+                      (click)="(void u)"
+                      data-testid="void"
+                    >
+                      <mat-icon>block</mat-icon> Void
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}

@@ -6,6 +6,18 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
 import { MatTooltipHarness } from '@angular/material/tooltip/testing';
 import { routes } from './app.routes';
+import { Auth } from './core/auth';
+import { Me } from './core/models';
+
+export const ADMIN: Me = {
+  id: 1,
+  username: 'admin',
+  full_name: 'Summer Smith',
+  role: 'admin',
+  branch_id: null,
+  branch: null,
+  must_change_password: false,
+};
 
 /** Smoke test: each screen renders its empty state with an empty backend. */
 describe('routes', () => {
@@ -16,6 +28,7 @@ describe('routes', () => {
       providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
+    TestBed.inject(Auth).user.set(ADMIN); // routes are behind authGuard
   });
 
   const period = {
@@ -47,7 +60,13 @@ describe('routes', () => {
   it('dashboard: no fridges yet', async () => {
     const text = await render('/', {
       '/api/branches': [],
-      '/api/dashboard': { ...period, counts: { red: 0, amber: 0, green: 0, grey: 0 }, fridges: [] },
+      '/api/dashboard': {
+        ...period,
+        counts: { red: 0, amber: 0, green: 0, grey: 0 },
+        scope_branch: null,
+        branches: [],
+        fridges: [],
+      },
     });
     expect(text).toContain('No fridges yet');
   });
@@ -60,9 +79,9 @@ describe('routes', () => {
     expect(text).toContain('No excursions above 5°C');
   });
 
-  it('registry: no uploads', async () => {
-    const text = await render('/registry', { '/api/loggers': [], '/api/uploads': [] });
-    expect(text).toContain('No files uploaded yet');
+  it('registry: empty registry', async () => {
+    const text = await render('/registry', { '/api/loggers': [] });
+    expect(text).toContain('Upload history moved to');
   });
 
   it('dashboard: says the week is incomplete when only some fridges reported', async () => {
@@ -95,6 +114,8 @@ describe('routes', () => {
         period_label: '2026-W39',
         counts: { red: 0, amber: 0, green: 1, grey: 1 },
         fridges_total: 2,
+        scope_branch: null,
+        branches: [],
         fridges_with_readings: 1,
         previous_period_from: '2026-09-14',
         previous_period_to: '2026-09-20',
@@ -139,6 +160,8 @@ describe('routes', () => {
         period_label: '2026-W39',
         counts: { red: 1, amber: 0, green: 0, grey: 0 },
         fridges_total: 1,
+        scope_branch: null,
+        branches: [],
         fridges_with_readings: 0,
         previous_period_from: '2026-09-14',
         previous_period_to: '2026-09-20',

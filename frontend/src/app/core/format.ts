@@ -9,12 +9,14 @@ import { Colour, Dashboard, FridgeCard } from './models';
  */
 export function colourFor(
   c: Pick<FridgeCard, 'excursion_count' | 'gap_count' | 'error_count' | 'last_reading_local'> &
-    Partial<Pick<FridgeCard, 'still_above'>>,
+    Partial<Pick<FridgeCard, 'still_above' | 'awaiting_upload'>>,
 ): Colour {
   // Red also when the last uploaded reading was still above the limit and no newer file
   // has shown a recovery yet: a missing file must never make a failing fridge look fine.
   if (c.excursion_count > 0 || c.still_above) return 'red';
   if (c.gap_count > 0 || c.error_count > 0) return 'amber';
+  // This period's file has not been uploaded yet: Summer cannot answer the inspector.
+  if (c.awaiting_upload) return 'amber';
   if (!c.last_reading_local) return 'grey';
   return 'green';
 }
@@ -27,7 +29,7 @@ export function incompletePeriod(
 }
 
 export function cardLabel(c: Pick<FridgeCard, 'awaiting_upload'>, colour: Colour): string {
-  return colour === 'grey' && c.awaiting_upload ? 'Awaiting upload' : COLOUR_LABEL[colour];
+  return colour === 'amber' && c.awaiting_upload ? 'Awaiting upload' : COLOUR_LABEL[colour];
 }
 
 export const COLOUR_LABEL: Record<Colour, string> = {

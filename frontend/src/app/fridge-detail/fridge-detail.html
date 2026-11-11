@@ -68,9 +68,9 @@
             </li>
           }
         </ul>
-        <a mat-stroked-button [href]="csvUrl()" class="no-print"
-          ><mat-icon>download</mat-icon> Inspector CSV</a
-        >
+        <button mat-stroked-button (click)="downloadCsv()" class="no-print">
+          <mat-icon>download</mat-icon> Inspector CSV
+        </button>
       }
     </section>
 

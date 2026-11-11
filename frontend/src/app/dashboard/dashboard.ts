@@ -11,6 +11,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Api, errorMessage } from '../core/api';
 import { addDays, cardLabel, colourFor, fmtTemp, incompletePeriod } from '../core/format';
 import { Branch, Dashboard } from '../core/models';
+import { Auth } from '../core/auth';
 import { Refresh } from '../core/refresh';
 import { Viewport } from '../core/viewport';
 import { UploadLauncher } from '../upload/upload-launcher';
@@ -36,6 +37,7 @@ export class DashboardPage {
   private readonly router = inject(Router);
   private readonly launcher = inject(UploadLauncher);
   protected readonly viewport = inject(Viewport);
+  readonly auth = inject(Auth);
   private readonly refresh = inject(Refresh);
 
   private readonly query = toSignal(this.route.queryParamMap, { requireSync: true });
@@ -60,7 +62,9 @@ export class DashboardPage {
   readonly fmtTemp = fmtTemp;
 
   constructor() {
-    this.api.branches().subscribe({ next: (b) => this.branches.set(b), error: () => undefined });
+    if (this.auth.isAdmin()) {
+      this.api.branches().subscribe({ next: (b) => this.branches.set(b), error: () => undefined });
+    }
     effect((onCleanup) => {
       this.refresh.version();
       const period = { from: this.from(), to: this.to() };

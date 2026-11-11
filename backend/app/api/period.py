@@ -6,6 +6,7 @@ The default is the ISO week of the latest reading in the database.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
@@ -33,20 +34,29 @@ class Period:
         return f"{self.start:%d %b} – {self.end:%d %b %Y}"
 
 
-def latest_week(db: Session, fridge_id: int | None = None) -> tuple[date, date] | None:
-    q = select(func.max(Reading.ts_local))
-    if fridge_id is not None:
-        q = q.where(Reading.fridge_id == fridge_id)
-    latest = db.scalar(q)
+def _visible(q, fridge_ids: Collection[int] | None):  # noqa: ANN001, ANN202
+    q = q.where(Reading.is_voided.is_(False))
+    if fridge_ids is not None:
+        q = q.where(Reading.fridge_id.in_(list(fridge_ids) or [-1]))
+    return q
+
+
+def latest_week(db: Session, fridge_ids: Collection[int] | None = None) -> tuple[date, date] | None:
+    """ISO week of the newest visible reading (optionally only for some fridges)."""
+    latest = db.scalar(_visible(select(func.max(Reading.ts_local)), fridge_ids))
     if latest is None:
         return None
     monday = latest.date() - timedelta(days=latest.weekday())
     return monday, monday + timedelta(days=6)
 
 
-def previous_week_with_data(db: Session, before_utc: datetime) -> tuple[date, date] | None:
+def previous_week_with_data(
+    db: Session, before_utc: datetime, fridge_ids: Collection[int] | None = None
+) -> tuple[date, date] | None:
     """The ISO week of the newest reading before ``before_utc`` (i.e. before a period)."""
-    latest = db.scalar(select(func.max(Reading.ts_local)).where(Reading.ts_utc < before_utc))
+    latest = db.scalar(
+        _visible(select(func.max(Reading.ts_local)), fridge_ids).where(Reading.ts_utc < before_utc)
+    )
     if latest is None:
         return None
     monday = latest.date() - timedelta(days=latest.weekday())
@@ -58,10 +68,11 @@ def resolve_period(
     settings: Settings,
     start: date | None,
     end: date | None,
-    fridge_id: int | None = None,
+    fridge_ids: Collection[int] | None = None,
 ) -> Period:
+    """The requested period, or by default the latest week with data for these fridges."""
     if start is None and end is None:
-        wk = latest_week(db, fridge_id) or latest_week(db)
+        wk = latest_week(db, fridge_ids) or latest_week(db)
         if wk is None:
             today = datetime.now(settings.tz).date()
             monday = today - timedelta(days=today.weekday())

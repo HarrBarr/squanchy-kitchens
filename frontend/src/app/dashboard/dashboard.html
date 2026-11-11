@@ -26,16 +26,71 @@
   @if (from()) {
     <button mat-stroked-button class="half" (click)="latest()">Latest week</button>
   }
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" [class.half]="!!from()">
-    <mat-label>Branch</mat-label>
-    <mat-select [value]="branch()" (valueChange)="setBranch($event)">
-      <mat-option [value]="null">All branches</mat-option>
-      @for (b of branches(); track b.id) {
-        <mat-option [value]="b.name">{{ b.name }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+  @if (auth.isAdmin()) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" [class.half]="!!from()">
+      <mat-label>Branch</mat-label>
+      <mat-select [value]="branch()" (valueChange)="setBranch($event)">
+        <mat-option [value]="null">All branches</mat-option>
+        @for (b of branches(); track b.id) {
+          <mat-option [value]="b.name">{{ b.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
 </div>
+
+@if (data(); as d) {
+  @if (d.scope_branch && d.branches.length === 1) {
+    <!-- One branch (a manager, or Summer filtering): branch header with its last upload. -->
+    @let b = d.branches[0];
+    <section class="branch-head" [class.missing]="b.missing" data-testid="branch-head">
+      <div>
+        <div class="eyebrow">{{ auth.isAdmin() ? 'Branch' : 'Your branch' }}</div>
+        <h2>{{ b.branch }}</h2>
+      </div>
+      <div class="last">
+        @if (b.last_upload; as u) {
+          <span class="muted">Last upload</span>
+          <span class="mono">{{ u.uploaded_at | date: 'EEE d MMM HH:mm' }} UTC</span>
+          <span class="muted small">{{ u.filename }} · {{ u.uploaded_by ?? '—' }}</span>
+        } @else {
+          <span class="muted">No uploads yet</span>
+        }
+        @if (b.missing) {
+          <span class="pill amber">No file for {{ d.period_label }} yet</span>
+        }
+      </div>
+    </section>
+  } @else if (d.branches.length > 1) {
+    <!-- Summer: every branch's last upload; amber when this week's files are missing. -->
+    <section class="branch-strip" aria-label="Uploads per branch" data-testid="branch-strip">
+      @for (b of d.branches; track b.branch) {
+        <button
+          type="button"
+          class="chip"
+          [class.missing]="b.missing"
+          (click)="setBranch(b.branch)"
+          [title]="
+            b.last_upload
+              ? 'Last upload ' +
+                (b.last_upload.uploaded_at | date: 'd MMM HH:mm') +
+                ' UTC · ' +
+                b.last_upload.filename +
+                ' · ' +
+                (b.last_upload.uploaded_by ?? '')
+              : 'No uploads yet'
+          "
+        >
+          <span class="dot-s" aria-hidden="true"></span>
+          <span class="nm">{{ b.branch }}</span>
+          <span class="when mono">{{
+            b.last_upload ? (b.last_upload.uploaded_at | date: 'd MMM') : '—'
+          }}</span>
+        </button>
+      }
+    </section>
+  }
+}
 
 @if (data(); as d) {
   <div class="stats" aria-label="Summary">

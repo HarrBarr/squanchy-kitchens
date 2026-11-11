@@ -2,7 +2,7 @@ import logging
 
 from fastapi import FastAPI
 
-from app.api import dashboard, fridges, health, registry, report, uploads
+from app.api import audit, auth, dashboard, fridges, health, registry, report, uploads, users
 from app.config import get_settings
 
 
@@ -21,7 +21,7 @@ def create_app() -> FastAPI:
         redoc_url=None,
         openapi_url="/api/openapi.json",
     )
-    for r in (health, registry, uploads, dashboard, fridges, report):
+    for r in (health, auth, users, registry, uploads, dashboard, fridges, report, audit):
         app.include_router(r.router)
     return app
 

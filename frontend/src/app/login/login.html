@@ -1,0 +1,87 @@
+<div class="wrap">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"><mat-icon>kitchen</mat-icon></span>
+    <span class="name">Squanchy <span class="aurora-text">Kitchens</span></span>
+  </div>
+
+  <form class="card glass" (ngSubmit)="submit()" autocomplete="on">
+    <div class="eyebrow">Squanchy Bakery · fridge monitor</div>
+    <h1>Sign in</h1>
+    <p class="muted">Use the username and password Summer gave you.</p>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Username</mat-label>
+      <input
+        matInput
+        name="username"
+        [(ngModel)]="username"
+        autocomplete="username"
+        autocapitalize="none"
+        required
+        data-testid="username"
+      />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Password</mat-label>
+      <input
+        matInput
+        name="password"
+        [type]="hide() ? 'password' : 'text'"
+        [(ngModel)]="password"
+        autocomplete="current-password"
+        required
+        data-testid="password"
+      />
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        (click)="hide.set(!hide())"
+        [attr.aria-label]="hide() ? 'Show password' : 'Hide password'"
+      >
+        <mat-icon>{{ hide() ? 'visibility' : 'visibility_off' }}</mat-icon>
+      </button>
+    </mat-form-field>
+
+    @if (busy()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+    @if (error()) {
+      <div class="error" role="alert"><mat-icon>error</mat-icon> {{ error() }}</div>
+    }
+
+    <button mat-flat-button class="btn-cta submit" type="submit" [disabled]="busy()">
+      Sign in
+    </button>
+    <p class="muted small">Forgot your password? Ask Summer to reset it from the Users screen.</p>
+  </form>
+
+  @if (demo()) {
+    <section class="demo glass" aria-label="Demo accounts">
+      <div class="eyebrow">Demo accounts (local demo only)</div>
+      <div class="demo-row">
+        <button mat-stroked-button type="button" (click)="useDemo('admin', 'admin2026#')">
+          admin · Summer (all branches)
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="useDemo('manager.rishon', 'manager2026#')"
+        >
+          manager.rishon
+        </button>
+        <button
+          mat-stroked-button
+          type="button"
+          (click)="useDemo('manager.telaviv', 'manager2026#')"
+        >
+          manager.telaviv
+        </button>
+      </div>
+      <p class="muted small">
+        Admin password <code>admin2026#</code>. Every branch has a manager
+        (<code>manager.haifa</code>, <code>manager.ashdod</code>, …) with <code>manager2026#</code>.
+      </p>
+    </section>
+  }
+</div>

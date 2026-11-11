@@ -10,14 +10,122 @@ import argparse
 import logging
 from pathlib import Path
 
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app.auth import hash_password, utcnow
 from app.config import Settings, get_settings
 from app.ingest import ImportRejected, import_file, logger_code_from_filename
 from app.registry import seed_registry
+from app.storage.models import (
+    ROLE_ADMIN,
+    ROLE_MANAGER,
+    Branch,
+    Fridge,
+    LoggerAssignment,
+    Reading,
+    Upload,
+    User,
+)
 from app.storage.session import get_sessionmaker
 
 log = logging.getLogger("squanchy.bootstrap")
+
+# Demo branch managers (SEED_DEMO_DATA=true), one per branch. Demo-only credentials.
+DEMO_MANAGERS = {
+    "Haifa": "manager.haifa",
+    "Rishon LeZion": "manager.rishon",
+    "Tel Aviv": "manager.telaviv",
+    "Jerusalem": "manager.jerusalem",
+    "Be'er Sheva": "manager.beersheva",
+    "Netanya": "manager.netanya",
+    "Petah Tikva": "manager.petah",
+    "Ashdod": "manager.ashdod",
+    "Herzliya": "manager.herzliya",
+    "Beit Shemesh": "manager.beitshemesh",
+    "Kfar Saba": "manager.kfarsaba",
+    "Rehovot": "manager.rehovot",
+}
+
+
+def seed_admin(db: Session, settings: Settings) -> User:
+    """Create the admin if missing. Never overwrite an existing admin's password, or a
+    changed password would be reset on every container restart."""
+    username = settings.admin_username.strip().lower()
+    admin = db.scalar(select(User).where(User.username == username))
+    if admin is None:
+        admin = User(
+            username=username,
+            full_name=settings.admin_full_name,
+            password_hash=hash_password(settings.admin_password),
+            role=ROLE_ADMIN,
+            branch_id=None,
+            is_active=True,
+            must_change_password=False,
+            created_at=utcnow(),
+        )
+        db.add(admin)
+        db.flush()
+        log.info("created admin user %r", username)
+    # Uploads made before users existed belong to the admin.
+    db.execute(update(Upload).where(Upload.uploaded_by.is_(None)).values(uploaded_by=admin.id))
+    db.commit()
+    return admin
+
+
+def backfill_upload_branches(db: Session) -> int:
+    """Uploads imported before uploads.branch_id existed: take the branch from the fridges
+    their readings sit in, or else from the logger's latest assignment. Idempotent."""
+    n = 0
+    for u in db.scalars(select(Upload).where(Upload.branch_id.is_(None))):
+        branch_id = db.scalar(
+            select(Fridge.branch_id)
+            .join(Reading, Reading.fridge_id == Fridge.id)
+            .where(Reading.upload_id == u.id)
+            .group_by(Fridge.branch_id)
+            .order_by(func.count().desc())
+            .limit(1)
+        )
+        if branch_id is None:
+            branch_id = db.scalar(
+                select(Fridge.branch_id)
+                .join(LoggerAssignment, LoggerAssignment.fridge_id == Fridge.id)
+                .where(LoggerAssignment.logger_id == u.logger_id)
+                .order_by(LoggerAssignment.assigned_from.desc())
+                .limit(1)
+            )
+        if branch_id is not None:
+            u.branch_id = branch_id
+            n += 1
+    db.commit()
+    if n:
+        log.info("backfilled the branch of %d earlier upload(s)", n)
+    return n
+
+
+def seed_demo_managers(db: Session, settings: Settings) -> int:
+    n = 0
+    for branch_name, username in DEMO_MANAGERS.items():
+        b = db.scalar(select(Branch).where(Branch.name == branch_name))
+        if b is None or db.scalar(select(User).where(User.username == username)):
+            continue
+        db.add(
+            User(
+                username=username,
+                full_name=f"{branch_name} manager",
+                password_hash=hash_password(settings.demo_manager_password),
+                role=ROLE_MANAGER,
+                branch_id=b.id,
+                is_active=True,
+                must_change_password=False,  # demo convenience for reviewers
+                created_at=utcnow(),
+            )
+        )
+        n += 1
+    db.commit()
+    if n:
+        log.info("created %d demo branch manager(s)", n)
+    return n
 
 
 def seed_registry_file(db: Session, settings: Settings) -> int:
@@ -30,7 +138,7 @@ def seed_registry_file(db: Session, settings: Settings) -> int:
     return n
 
 
-def seed_demo_files(db: Session, settings: Settings) -> dict[str, str]:
+def seed_demo_files(db: Session, settings: Settings, admin: User | None = None) -> dict[str, str]:
     """Import every ``*.csv`` in the demo dir whose name carries a logger code. Identical
     files are skipped on their SHA-256, so this is safe to run again. Files whose logger is
     not in the registry (TL-9999, on purpose) are reported and skipped."""
@@ -44,7 +152,7 @@ def seed_demo_files(db: Session, settings: Settings) -> dict[str, str]:
         if code is None:
             continue
         try:
-            s = import_file(db, settings, path.name, path.read_bytes(), code)
+            s = import_file(db, settings, path.name, path.read_bytes(), code, user=admin)
         except ImportRejected as exc:
             db.rollback()
             results[path.name] = f"rejected: {exc}"
@@ -71,8 +179,11 @@ def main() -> None:
     settings = get_settings()
     with get_sessionmaker()() as db:
         seed_registry_file(db, settings)
+        admin = seed_admin(db, settings)
+        backfill_upload_branches(db)
         if args.demo or settings.seed_demo_data:
-            seed_demo_files(db, settings)
+            seed_demo_managers(db, settings)
+            seed_demo_files(db, settings, admin)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,128 @@
+<div class="page-head">
+  <div>
+    <div class="eyebrow">Admin</div>
+    <h1>Us<span class="aurora-text">ers</span></h1>
+    <div class="sub">
+      Branch managers sign in to upload their own branch's files and export its report. There is no
+      public sign-up and no e-mail reset: you create accounts and reset passwords here.
+    </div>
+  </div>
+</div>
+
+<section class="panel">
+  <h2>Add a branch manager</h2>
+  <form class="create" (ngSubmit)="create()">
+    <mat-form-field appearance="outline">
+      <mat-label>Username</mat-label>
+      <input
+        matInput
+        name="username"
+        [(ngModel)]="draft.username"
+        placeholder="manager.haifa2"
+        autocapitalize="none"
+        required
+      />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Full name</mat-label>
+      <input matInput name="full_name" [(ngModel)]="draft.full_name" required />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Branch</mat-label>
+      <mat-select name="branch" [(ngModel)]="draft.branch_id" required>
+        @for (b of branches(); track b.id) {
+          <mat-option [value]="b.id">{{ b.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Initial password</mat-label>
+      <input
+        matInput
+        name="password"
+        [(ngModel)]="draft.password"
+        minlength="8"
+        autocomplete="new-password"
+        required
+      />
+      <mat-hint>8+ characters. They change it at first sign-in.</mat-hint>
+    </mat-form-field>
+    <button mat-flat-button class="btn-cta" type="submit" [disabled]="!valid()">Create</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Accounts ({{ users().length }})</h2>
+  <div class="table-wrap">
+    <table class="data stack">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Branch</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of users(); track u.id) {
+          <tr [class.inactive]="!u.is_active">
+            <td data-label="User">
+              <strong>{{ u.full_name }}</strong>
+              <div class="muted mono small">{{ u.username }}</div>
+            </td>
+            <td data-label="Role">{{ u.role === 'admin' ? 'Admin' : 'Branch manager' }}</td>
+            <td data-label="Branch">
+              @if (u.role === 'branch_manager') {
+                <mat-form-field
+                  appearance="outline"
+                  subscriptSizing="dynamic"
+                  class="branch-select"
+                >
+                  <mat-select
+                    [value]="u.branch_id"
+                    (valueChange)="setBranch(u, $event)"
+                    [attr.aria-label]="'Branch for ' + u.username"
+                  >
+                    @for (b of branches(); track b.id) {
+                      <mat-option [value]="b.id">{{ b.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else {
+                <span class="muted">All branches</span>
+              }
+            </td>
+            <td data-label="Status">
+              @if (!u.is_active) {
+                <span class="pill grey">Deactivated</span>
+              } @else if (u.must_change_password) {
+                <span class="pill amber">Must change password</span>
+              } @else {
+                <span class="pill green">Active</span>
+              }
+            </td>
+            <td data-label="Created" class="mono">{{ u.created_at | date: 'd MMM yyyy' }}</td>
+            <td class="actions">
+              @if (u.id !== auth.user()?.id) {
+                <button mat-button (click)="resetPassword(u)">
+                  <mat-icon>key</mat-icon> Reset password
+                </button>
+                @if (u.is_active) {
+                  <button mat-button class="danger" (click)="setActive(u, false)">
+                    Deactivate
+                  </button>
+                } @else {
+                  <button mat-button (click)="setActive(u, true)">Reactivate</button>
+                }
+              } @else {
+                <span class="muted small">This is you</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

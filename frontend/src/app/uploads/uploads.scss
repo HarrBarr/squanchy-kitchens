@@ -1,0 +1,37 @@
+.file {
+  font-family: var(--sk-font-mono);
+  font-size: 13px;
+}
+td.note {
+  white-space: normal;
+  min-width: 220px;
+  font-size: 12px;
+}
+td.actions {
+  text-align: right;
+  button + button {
+    margin-left: 6px;
+  }
+}
+tr.voided td:not(.actions):not(.note) {
+  opacity: 0.55;
+  text-decoration: line-through;
+  text-decoration-color: rgba(245, 247, 255, 0.35);
+}
+.btn-danger-outline {
+  --mat-button-outlined-label-text-color: var(--sk-red-text);
+  --mat-button-outlined-outline-color: rgba(255, 92, 92, 0.5);
+}
+:host-context(.mobileBreakpoint) {
+  td.actions {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    button + button {
+      margin-left: 0;
+    }
+    button {
+      flex: 1;
+    }
+  }
+}

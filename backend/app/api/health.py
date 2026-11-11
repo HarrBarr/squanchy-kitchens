@@ -7,6 +7,8 @@ from app.storage.session import get_db
 
 router = APIRouter(prefix="/api", tags=["health"])
 
+DEMO_ADMIN_PASSWORD = "admin2026#"  # the Compose default, published in the README
+
 
 @router.get("/health")
 def health(db: Session = Depends(get_db), settings: Settings = Depends(get_settings)) -> dict:
@@ -20,4 +22,7 @@ def health(db: Session = Depends(get_db), settings: Settings = Depends(get_setti
         "database": database,
         "version": settings.app_version,
         "env": settings.app_env,
+        # The sign-in page lists the demo logins only while the stack runs on the published
+        # demo defaults (they are in the README anyway). Never true once ADMIN_PASSWORD is set.
+        "demo_accounts": settings.seed_demo_data and settings.admin_password == DEMO_ADMIN_PASSWORD,
     }

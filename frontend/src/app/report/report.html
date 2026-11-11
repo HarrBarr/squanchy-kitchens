@@ -28,18 +28,26 @@
       (change)="set({ to: $any($event.target).value })"
     />
   </mat-form-field>
-  <mat-form-field appearance="outline" subscriptSizing="dynamic">
-    <mat-label>Branch</mat-label>
-    <mat-select [value]="branch()" (valueChange)="set({ branch: $event })">
-      <mat-option [value]="null">All branches</mat-option>
-      @for (b of branches(); track b.id) {
-        <mat-option [value]="b.name">{{ b.name }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
-  <a mat-flat-button class="btn-cta half" [href]="csvUrl()" [attr.aria-disabled]="!data()"
-    ><mat-icon>download</mat-icon> CSV</a
+  @if (auth.isAdmin()) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Branch</mat-label>
+      <mat-select [value]="branch()" (valueChange)="set({ branch: $event })">
+        <mat-option [value]="null">All branches</mat-option>
+        @for (b of branches(); track b.id) {
+          <mat-option [value]="b.name">{{ b.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+  }
+  <button
+    mat-flat-button
+    class="btn-cta half"
+    (click)="downloadCsv()"
+    [disabled]="!data() || downloading()"
+    data-testid="csv"
   >
+    <mat-icon>download</mat-icon> CSV
+  </button>
   <button mat-stroked-button class="half" (click)="print()">
     <mat-icon>print</mat-icon> Print
   </button>

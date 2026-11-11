@@ -1,8 +1,13 @@
-"""Dashboard: one card per fridge, coloured red / amber / green (grey = no readings).
+"""Dashboard: one card per fridge, coloured red / amber / green (grey = never had data).
 
-* red   - at least one excursion overlaps the period ("ongoing" badge if not recovered)
-* amber - no excursion, but a gap or a sensor error in the period
+* red   - at least one excursion overlaps the period ("ongoing" badge if not recovered), or
+          still above the limit at its last uploaded reading with no newer file yet
+* amber - no excursion, but a gap or a sensor error in the period, or this period's file has
+          not been uploaded yet (the inspector question has a hole)
 * green - otherwise; isolated spikes stay green (a door opening is fine)
+
+Branch managers only ever see their own branch (``branch_scope``). Voided uploads are
+invisible: their readings are excluded everywhere.
 """
 
 from __future__ import annotations
@@ -17,9 +22,20 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.period import Period, fmt_duration, previous_week_with_data, resolve_period
+from app.auth import BranchScope, branch_scope
 from app.config import Settings, get_settings
 from app.rules import Point, Spike, analyze
-from app.storage.models import Branch, Excursion, Fridge, Gap, Logger, LoggerAssignment, Reading
+from app.storage.models import (
+    UPLOAD_VOIDED,
+    Branch,
+    Excursion,
+    Fridge,
+    Gap,
+    Logger,
+    LoggerAssignment,
+    Reading,
+    Upload,
+)
 from app.storage.session import get_db
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
@@ -32,7 +48,7 @@ class FridgeCard(BaseModel):
     loggers: list[str]
     colour: str  # red | amber | green | grey
     ongoing: bool
-    # Grey cards: the fridge has older readings but this period's file is not uploaded yet.
+    # Amber: the fridge has older readings but this period's file is not uploaded yet.
     awaiting_upload: bool
     # Red carried over from an earlier period: the fridge's last uploaded reading was still
     # above the limit (open excursion) and no newer file has shown it recover.
@@ -49,6 +65,22 @@ class FridgeCard(BaseModel):
     peak_c: float | None
 
 
+class LastUpload(BaseModel):
+    upload_id: int
+    uploaded_at: datetime  # UTC
+    filename: str
+    logger: str
+    uploaded_by: str | None
+
+
+class BranchStatus(BaseModel):
+    branch: str
+    last_upload: LastUpload | None
+    # No visible reading for any of this branch's fridges in the period: the week's files
+    # have not arrived yet. Shown amber.
+    missing: bool
+
+
 class DashboardOut(BaseModel):
     period_from: date
     period_to: date
@@ -63,11 +95,17 @@ class DashboardOut(BaseModel):
     previous_period_from: date | None
     previous_period_to: date | None
     previous_period_label: str | None
+    scope_branch: str | None  # set when the view is limited to one branch
+    branches: list[BranchStatus]
     fridges: list[FridgeCard]
 
 
 def period_spikes(
-    db: Session, settings: Settings, period: Period, fridge_id: int | None = None
+    db: Session,
+    settings: Settings,
+    period: Period,
+    fridge_id: int | None = None,
+    fridge_ids: list[int] | None = None,
 ) -> list[tuple[int, Spike]]:
     """Spikes are not stored (they are not alerts); derive them from the readings. The window
     is padded so a run crossing the period edge is judged on its full length."""
@@ -79,9 +117,15 @@ def period_spikes(
         Reading.temp_c,
         Reading.status,
         Reading.fridge_id,
-    ).where(Reading.ts_utc >= period.start_utc - pad, Reading.ts_utc < period.end_utc + pad)
+    ).where(
+        Reading.ts_utc >= period.start_utc - pad,
+        Reading.ts_utc < period.end_utc + pad,
+        Reading.is_voided.is_(False),
+    )
     if fridge_id is not None:
         q = q.where(Reading.fridge_id == fridge_id)
+    if fridge_ids is not None:
+        q = q.where(Reading.fridge_id.in_(fridge_ids or [-1]))
     by_logger: dict[int, list[Point]] = defaultdict(list)
     for r in db.execute(q):
         by_logger[r.logger_id].append(
@@ -109,17 +153,23 @@ def _f(x: Decimal | None) -> float | None:
 def dashboard(
     from_: date | None = Query(None, alias="from"),
     to: date | None = Query(None),
-    branch: str | None = Query(None),
+    scope: BranchScope = Depends(branch_scope),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> DashboardOut:
-    period = resolve_period(db, settings, from_, to)
-    in_period = (Reading.ts_utc >= period.start_utc, Reading.ts_utc < period.end_utc)
-
     fq = select(Fridge).join(Branch).options(selectinload(Fridge.branch))
-    if branch:
-        fq = fq.where(Branch.name == branch)
+    if scope.branch_id is not None:
+        fq = fq.where(Fridge.branch_id == scope.branch_id)
     fridges = list(db.scalars(fq.order_by(Branch.name, Fridge.name)))
+    ids = [f.id for f in fridges] or [-1]
+    scoped = scope.branch_id is not None
+    period = resolve_period(db, settings, from_, to, fridge_ids=ids if scoped else None)
+    in_period = (
+        Reading.ts_utc >= period.start_utc,
+        Reading.ts_utc < period.end_utc,
+        Reading.is_voided.is_(False),
+        Reading.fridge_id.in_(ids),
+    )
 
     # Loggers that fed each fridge in the period, else the current assignment.
     loggers: dict[int, set[str]] = defaultdict(set)
@@ -152,21 +202,33 @@ def dashboard(
     excursions: dict[int, list[Excursion]] = defaultdict(list)
     for e in db.scalars(
         select(Excursion)
-        .where(Excursion.start_utc < period.end_utc, Excursion.end_utc >= period.start_utc)
+        .where(
+            Excursion.start_utc < period.end_utc,
+            Excursion.end_utc >= period.start_utc,
+            Excursion.fridge_id.in_(ids),
+        )
         .order_by(Excursion.start_utc)
     ):
         excursions[e.fridge_id].append(e)
     gaps: dict[int, list[Gap]] = defaultdict(list)
     for g in db.scalars(
         select(Gap)
-        .where(Gap.start_utc < period.end_utc, Gap.end_utc > period.start_utc)
+        .where(
+            Gap.start_utc < period.end_utc,
+            Gap.end_utc > period.start_utc,
+            Gap.fridge_id.in_(ids),
+        )
         .order_by(Gap.start_utc)
     ):
         gaps[g.fridge_id].append(g)
     last_seen: dict[int, datetime] = dict(
         db.execute(
             select(Reading.fridge_id, func.max(Reading.ts_local))
-            .where(Reading.ts_utc < period.end_utc)
+            .where(
+                Reading.ts_utc < period.end_utc,
+                Reading.is_voided.is_(False),
+                Reading.fridge_id.in_(ids),
+            )
             .group_by(Reading.fridge_id)
         ).all()
     )
@@ -174,12 +236,16 @@ def dashboard(
     open_before: dict[int, Excursion] = {}
     for e in db.scalars(
         select(Excursion)
-        .where(Excursion.is_open.is_(True), Excursion.end_utc < period.start_utc)
+        .where(
+            Excursion.is_open.is_(True),
+            Excursion.end_utc < period.start_utc,
+            Excursion.fridge_id.in_(ids),
+        )
         .order_by(Excursion.end_utc)
     ):
         open_before[e.fridge_id] = e  # latest one wins
     spikes: dict[int, int] = defaultdict(int)
-    for _, s in period_spikes(db, settings, period):
+    for _, s in period_spikes(db, settings, period, fridge_ids=ids):
         spikes[s.fridge_id] += 1
 
     cards: list[FridgeCard] = []
@@ -226,7 +292,9 @@ def dashboard(
             )
             still_temp = db.scalar(
                 select(Reading.temp_c).where(
-                    Reading.fridge_id == f.id, Reading.ts_utc == carried.end_utc
+                    Reading.fridge_id == f.id,
+                    Reading.ts_utc == carried.end_utc,
+                    Reading.is_voided.is_(False),
                 )
             )
         elif gp or err:
@@ -247,13 +315,12 @@ def dashboard(
                 bits.append(f"{err} sensor error{'s' if err > 1 else ''}")
             reason = " · ".join(bits)
         elif lst is None:
-            colour = "grey"
             seen = last_seen.get(f.id)
-            reason = (
-                f"Awaiting this week's file · last reading {seen:%a %d %b %H:%M}"
-                if seen
-                else "No readings yet"
-            )
+            if seen:
+                colour = "amber"
+                reason = f"Awaiting this week's file · last reading {seen:%a %d %b %H:%M}"
+            else:
+                colour, reason = "grey", "No readings yet"
         else:
             colour, reason = "green", "OK"
         cards.append(
@@ -283,7 +350,7 @@ def dashboard(
     order = {"red": 0, "amber": 1, "green": 2, "grey": 3}
     cards.sort(key=lambda c: (order[c.colour], not c.ongoing, c.branch, c.fridge))
     counts = {k: sum(1 for c in cards if c.colour == k) for k in order}
-    prev = previous_week_with_data(db, period.start_utc)
+    prev = previous_week_with_data(db, period.start_utc, ids if scoped else None)
     prev_period = resolve_period(db, settings, prev[0], prev[1]) if prev else None
     return DashboardOut(
         period_from=period.start,
@@ -296,5 +363,43 @@ def dashboard(
         previous_period_from=prev_period.start if prev_period else None,
         previous_period_to=prev_period.end if prev_period else None,
         previous_period_label=prev_period.label if prev_period else None,
+        scope_branch=scope.branch_name,
+        branches=_branch_statuses(db, fridges, cards),
         fridges=cards,
     )
+
+
+def _branch_statuses(
+    db: Session, fridges: list[Fridge], cards: list[FridgeCard]
+) -> list[BranchStatus]:
+    """Last (non-voided) upload per branch, and whether the period has no data for it."""
+    branch_ids = {f.branch_id: f.branch.name for f in fridges}
+    reporting = {c.branch for c in cards if c.last_reading_local is not None}
+    latest: dict[int, Upload] = {}
+    for u in db.scalars(
+        select(Upload)
+        .where(Upload.status != UPLOAD_VOIDED, Upload.branch_id.in_(list(branch_ids) or [-1]))
+        .options(selectinload(Upload.uploader), selectinload(Upload.logger))
+        .order_by(Upload.started_at, Upload.id)
+    ):
+        assert u.branch_id is not None
+        latest[u.branch_id] = u
+    out = []
+    for bid, name in sorted(branch_ids.items(), key=lambda kv: kv[1]):
+        last_up = latest.get(bid)
+        out.append(
+            BranchStatus(
+                branch=name,
+                last_upload=LastUpload(
+                    upload_id=last_up.id,
+                    uploaded_at=last_up.started_at,
+                    filename=last_up.original_filename,
+                    logger=last_up.logger.logger_code,
+                    uploaded_by=last_up.uploader.full_name if last_up.uploader else None,
+                )
+                if last_up
+                else None,
+                missing=name not in reporting,
+            )
+        )
+    return out

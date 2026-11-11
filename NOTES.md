@@ -76,6 +76,37 @@
   gets a glowing red temperature; a recovered fridge in a red week shows its healthy reading
   in plain text. Fonts are self-hosted (no Google Fonts call at runtime, except the Material
   Symbols icon font). The print stylesheet resets to ink on white for the inspector.
+- **Two roles, `admin` and `branch_manager`, and branch managers upload directly instead of
+  e-mailing Summer.** She asked to "upload the files and see, in one place, how every fridge
+  is doing." Giving each manager a login for their own branch, while she keeps seeing
+  everything, matches how the twelve branches already send her files, without building
+  inbox automation. Enforcement is on the API: every request reloads the user from the
+  database (live role, branch, active flag), and a manager asking for another branch gets
+  `403`, not an empty list. A manager's file with even one reading outside their branch
+  (by the registry, on that date) is refused whole, never imported in part.
+- **A manager can export their own branch's inspector report**, so they can hand it to a
+  Ministry inspector without waiting for Summer. Every export is in the audit log.
+- **A manager can flag their own upload as "uploaded by mistake"; only Summer can void it.**
+  A void is a soft delete. The uploads row, the readings and the original file are kept,
+  the data is hidden everywhere, excursions are recomputed, and the audit log records who did
+  it and why. Readings are unique per (logger, timestamp), so voiding a *correction* restores
+  the overwritten values by re-reading the earlier upload's stored original. A voided file's
+  hash no longer blocks re-uploading the same bytes (`active_sha256` is a unique column that
+  is NULL once voided, because MySQL has no partial unique index).
+- **Passwords and `JWT_SECRET` defaults in this public repo are demo-only**, so a reviewer
+  can sign in after `docker compose up`. A real deployment must set `ADMIN_PASSWORD` and
+  `JWT_SECRET` in the environment and change the admin password. The admin is created
+  only if missing, so a changed password survives restarts. The HMAC key is the SHA-256 of
+  `JWT_SECRET`, which gives a 32-byte key whatever its length, but the secret itself still
+  has to be random and private.
+- **No self-service e-mail password reset in this version.** It would need Gmail or SMTP,
+  which conflicts with "no accounts and no paid services". Summer resets a password from
+  the Users screen and gets a one-time temporary password. The user must change it at next
+  sign-in (the API answers `403 must_change_password` until they do).
+- **Seeded demo managers do not have to change their password**, and demo seed uploads are
+  recorded as uploaded by the admin. A missing week for a fridge (no file yet) is now
+  **amber** ("Awaiting upload"), per the auth spec, instead of the earlier grey. The
+  dashboard shows each branch's last upload.
 - **Tooling:** Angular 22 is the version `ng new` scaffolds today, and its default test
   runner is Vitest, so the frontend tests run in plain Node with no browser in the image.
   I used **npm** throughout instead of the pnpm in the plan, picked once and used
@@ -98,11 +129,18 @@
 - Is the Haifa logger the only Fahrenheit device? Will new loggers ever use an interval
   other than 15 minutes?
 
+- Who should be allowed to void a file: only you, or also the manager who uploaded it,
+  after a cooling-off period?
+- Should a flagged file already be hidden from the inspector report, or only after you void
+  it? (Today: only after a void.)
+
 ## What's not done, and what I would do with one more hour
 
-- Not done: PDF export (there's a print stylesheet instead), login, email ingestion,
+- Not done: PDF export (there's a print stylesheet instead), email ingestion,
   multi-week comparison, registry CSV import from the UI, notifications, a per-fridge
-  threshold, and an end-to-end browser test.
+  threshold, an end-to-end browser test, self-service e-mail password reset, refresh tokens
+  or a token denylist on logout, more roles (e.g. a read-only inspector login), and
+  notifications when a flag is waiting (the in-app badge is the v1).
 - One more hour: a Playwright run of the clean-clone path (`docker compose up` → three red
   cards → open Rishon → download the CSV) in CI, so the release bar in the plan is checked
   automatically and not by hand.

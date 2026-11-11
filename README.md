@@ -33,7 +33,7 @@ docker compose up --build
 If you don't have Git, download the ZIP from GitHub, unzip it, `cd` into the folder and run
 the same command.
 
-Open **http://localhost:8080**. On the first start the API waits for MySQL, runs the
+Open **http://localhost:8080** and sign in (see [Sign-in](#sign-in-demo-accounts)). On the first start the API waits for MySQL, runs the
 migrations and seeds the logger registry from `data/loggers.csv`. It then imports the mock
 week in `data/mock-logger-files/` (2026-W38, 14–20 Sep 2026). The dashboard should show
 **three red fridges**:
@@ -58,6 +58,38 @@ MySQL's port 3306 is **not** published, so it can't clash with a MySQL already o
 machine. The only published port is 8080. The OpenAPI docs are at
 http://localhost:8080/api/docs.
 
+## Sign-in (demo accounts)
+
+There is no public sign-up. On first start the API creates the admin, and with the default
+`SEED_DEMO_DATA=true` it also creates one branch manager per branch:
+
+| Username | Password | Role | Sees |
+|---|---|---|---|
+| `admin` | `admin2026#` | admin (Summer Smith) | every branch, users, review, audit log |
+| `manager.rishon`, `manager.telaviv`, `manager.haifa`, `manager.jerusalem`, `manager.beersheva`, `manager.netanya`, `manager.petah`, `manager.ashdod`, `manager.herzliya`, `manager.beitshemesh`, `manager.kfarsaba`, `manager.rehovot` | `manager2026#` | branch manager | their own branch only |
+
+**These credentials and the `JWT_SECRET` default are for a local demo only. They are
+published in this public repository.** A real deployment must set `ADMIN_PASSWORD` and
+`JWT_SECRET` (and `SEED_DEMO_DATA=false`) in the environment, and Summer must change her
+password before any real Ministry data goes in. The sign-in page lists the demo logins only
+while the stack runs on these defaults.
+
+What each role can do (the API enforces all of it; the UI only hides what you cannot use):
+
+| | admin | branch manager |
+|---|---|---|
+| Dashboard, fridge charts, inspector report and CSV export | all branches, or one | own branch only (another branch is `403`) |
+| Upload a logger file | any logger | only loggers assigned to their branch on every date in the file; otherwise the whole file is refused |
+| Flag an upload as "uploaded by mistake" | any | own uploads only |
+| Dismiss a flag, void an upload | yes | no |
+| Users (create, change branch, reset password, deactivate), logger registry changes, audit log | yes | no (registry read-only, own branch) |
+
+Voiding is a soft delete: the file, its rows and the original upload stay on disk, the data
+disappears from the dashboard, charts and reports, and excursions are recomputed. Readings a
+voided correction had overwritten come back from the earlier file. Tokens are JWTs (8 h by
+default). Logging out drops the token in the browser. A forgotten password is reset by Summer
+on the Users screen, which shows a one-time temporary password. Nothing is e-mailed.
+
 ## Uploading a file
 
 Click **Upload** and pick a raw export, or **drag the file** onto the dialog's drop zone or anywhere on the page, which opens the dialog with the file already chosen. Then confirm the logger. Only `.csv`, `.txt` and `.tsv` files are accepted, one per upload, because each file has to be matched to its logger. If the file name contains the
@@ -70,6 +102,9 @@ excursions, plus any warnings.
   excursions are recomputed. Every original file is kept on disk for audit.
 - An **unknown logger** (try `TL-9999_2026-W38.csv`) gets a 422 with a message pointing to
   the Logger registry. Nothing is written. Add the logger there and upload again.
+- A **branch manager** uploading another branch's logger gets a 403. Nothing is imported.
+- The **Uploads** screen lists every file, who uploaded it and its status. A manager can flag
+  their own file as a mistake; Summer sees a badge on **Review** and can dismiss or void it.
 
 ## Tests (in containers)
 
@@ -79,10 +114,12 @@ make test
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --no-deps web npx ng test --watch=false
 ```
 
-- **Backend:** 70 pytest tests. They cover the parser (every format family and the
+- **Backend:** 98 pytest tests. They cover the parser (every format family and the
   sample-table pins), timezone/DST and °F conversion, the rules engine, ingest (duplicates,
   out-of-order rows, idempotency, unknown logger, the TL-0417 move) and the API (colours,
-  report, CSV, registry). They also include the **golden test**
+  report, CSV, registry). They also cover sign-in and roles (`backend/tests/test_auth.py`: cross-branch `403`s,
+  upload ownership, flag/void, voiding a correction, forced password change, audit log). They
+  also include the **golden test**
   [`backend/tests/test_excursions_golden.py`](backend/tests/test_excursions_golden.py), which
   imports the whole mock week and compares the result with
   [`data/expected_excursions.json`](data/expected_excursions.json).
@@ -90,9 +127,10 @@ make test
   `mysql` service as root, migrate it with Alembic and drop it afterwards. The demo database
   is never touched. On a host without `TEST_DATABASE_URL`, the same tests run against a
   temporary SQLite file (`cd backend && pytest`).
-- **Frontend:** 18 Vitest tests in the Node `dev` image. They cover the card colour helper,
+- **Frontend:** 44 Vitest tests in the Node `dev` image. They cover the card colour helper,
   filename → logger, the upload dialog (submit stays disabled until a file and a logger are
-  chosen), the chart breaking at gaps and `ERR`, and empty-state smoke tests for each route.
+  chosen), the chart breaking at gaps and `ERR`, empty-state smoke tests for each route, and
+  auth (guards, the Bearer interceptor, admin vs manager navigation).
 
 ## Development (hot reload, still only Docker)
 
@@ -141,7 +179,8 @@ web (nginx :8080) ──/api──▶ api (FastAPI :8000) ──▶ mysql (8.4, 
    `ERR`, a hole longer than 15 minutes, or a logger move breaks a run. Duration is the last
    minus the first reading of the run. Gaps are reported separately.
 
-The full planning document is
-[`squanchy-kitchens-development.md`](squanchy-kitchens-development.md). Decisions and open
+The full planning documents are
+[`squanchy-kitchens-development.md`](squanchy-kitchens-development.md) and, for sign-in and
+roles, [`squanchy-kitchens-auth.md`](squanchy-kitchens-auth.md). Decisions and open
 questions are in [`NOTES.md`](NOTES.md). The mock data and its scenarios are in
 [`data/mock-logger-files/SCENARIOS.md`](data/mock-logger-files/SCENARIOS.md).

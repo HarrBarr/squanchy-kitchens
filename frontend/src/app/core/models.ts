@@ -36,6 +36,8 @@ export interface Dashboard {
   previous_period_from: string | null;
   previous_period_to: string | null;
   previous_period_label: string | null;
+  scope_branch: string | null;
+  branches: BranchStatus[];
   fridges: FridgeCard[];
 }
 
@@ -157,17 +159,101 @@ export interface ImportSummary {
   warnings: string[];
 }
 
+export type UploadStatus = 'active' | 'flagged_mistake' | 'voided';
+
 export interface UploadRecord {
   id: number;
   logger: string;
+  branch: string | null;
   original_filename: string;
   sha256: string;
   row_count: number;
   error_count: number;
-  status: string;
+  status: UploadStatus;
   started_at: string;
   finished_at: string | null;
   note: string | null;
+  uploaded_by_id: number | null;
+  uploaded_by: string | null;
+  flag_reason: string | null;
+  flagged_by: string | null;
+  flagged_at: string | null;
+  void_reason: string | null;
+  voided_by: string | null;
+  voided_at: string | null;
+}
+
+export type Role = 'admin' | 'branch_manager';
+
+export interface Me {
+  id: number;
+  username: string;
+  full_name: string;
+  role: Role;
+  branch_id: number | null;
+  branch: string | null;
+  must_change_password: boolean;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: 'bearer';
+  must_change_password: boolean;
+}
+
+export interface UserRow {
+  id: number;
+  username: string;
+  full_name: string;
+  role: Role;
+  branch_id: number | null;
+  branch: string | null;
+  is_active: boolean;
+  must_change_password: boolean;
+  created_at: string;
+}
+
+export interface UserCreate {
+  username: string;
+  full_name: string;
+  branch_id: number;
+  password: string;
+}
+
+export interface UserPatch {
+  full_name?: string;
+  branch_id?: number;
+  is_active?: boolean;
+}
+
+export interface PasswordReset {
+  user: UserRow;
+  temporary_password: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  created_at: string;
+  user: string | null;
+  username: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: number | null;
+  details: Record<string, unknown> | null;
+}
+
+export interface LastUpload {
+  upload_id: number;
+  uploaded_at: string;
+  filename: string;
+  logger: string;
+  uploaded_by: string | null;
+}
+
+export interface BranchStatus {
+  branch: string;
+  last_upload: LastUpload | null;
+  missing: boolean;
 }
 
 export interface Period {

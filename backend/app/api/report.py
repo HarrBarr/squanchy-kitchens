@@ -14,6 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.period import Period, fmt_duration, resolve_period
+from app.auth import BranchScope, audit, branch_scope, forbidden
 from app.config import Settings, get_settings
 from app.storage.models import Branch, Excursion, Fridge
 from app.storage.session import get_db
@@ -49,7 +50,27 @@ def _peak_1dp(x: Decimal) -> float:
     return float(x.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
 
 
-def _rows(db: Session, period: Period, branch: str | None, fridge: int | None) -> list[ReportRow]:
+def _scoped_period(
+    db: Session,
+    settings: Settings,
+    scope: BranchScope,
+    from_: date | None,
+    to: date | None,
+    fridge: int | None,
+) -> Period:
+    if fridge is not None:
+        f = db.get(Fridge, fridge)
+        if f is None or not scope.allows_branch(f.branch_id):
+            raise forbidden("This fridge belongs to another branch.")
+    ids = None
+    if scope.branch_id is not None:
+        ids = list(db.scalars(select(Fridge.id).where(Fridge.branch_id == scope.branch_id)))
+    return resolve_period(db, settings, from_, to, fridge_ids=ids)
+
+
+def _rows(
+    db: Session, period: Period, branch_id: int | None, fridge: int | None
+) -> list[ReportRow]:
     q = (
         select(Excursion)
         .join(Fridge, Fridge.id == Excursion.fridge_id)
@@ -61,8 +82,8 @@ def _rows(db: Session, period: Period, branch: str | None, fridge: int | None) -
         )
         .order_by(Excursion.start_utc)
     )
-    if branch:
-        q = q.where(Branch.name == branch)
+    if branch_id is not None:
+        q = q.where(Branch.id == branch_id)
     if fridge:
         q = q.where(Fridge.id == fridge)
     return [
@@ -88,19 +109,20 @@ def _rows(db: Session, period: Period, branch: str | None, fridge: int | None) -
 def report(
     from_: date | None = Query(None, alias="from"),
     to: date | None = Query(None),
-    branch: str | None = Query(None),
     fridge: int | None = Query(None),
+    scope: BranchScope = Depends(branch_scope),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> ReportOut:
-    period = resolve_period(db, settings, from_, to)
+    """Inspector list. Branch managers: their branch only; admins: one branch or all."""
+    period = _scoped_period(db, settings, scope, from_, to, fridge)
     return ReportOut(
         period_from=period.start,
         period_to=period.end,
         period_label=period.label,
         timezone=settings.app_timezone,
         threshold_c=settings.alert_threshold_c,
-        rows=_rows(db, period, branch, fridge),
+        rows=_rows(db, period, scope.branch_id, fridge),
     )
 
 
@@ -108,12 +130,13 @@ def report(
 def report_csv(
     from_: date | None = Query(None, alias="from"),
     to: date | None = Query(None),
-    branch: str | None = Query(None),
     fridge: int | None = Query(None),
+    scope: BranchScope = Depends(branch_scope),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> StreamingResponse:
-    period = resolve_period(db, settings, from_, to)
+    """CSV export of the inspector list. Every export is written to the audit log."""
+    period = _scoped_period(db, settings, scope, from_, to, fridge)
     buf = io.StringIO()
     w = csv.writer(buf)
     w.writerow(
@@ -130,7 +153,22 @@ def report_csv(
             "Status",
         ]
     )
-    for r in _rows(db, period, branch, fridge):
+    rows = _rows(db, period, scope.branch_id, fridge)
+    audit(
+        db,
+        scope.user,
+        "report.exported",
+        "report",
+        None,
+        branch=scope.branch_name or "all branches",
+        fridge_id=fridge,
+        period_from=period.start.isoformat(),
+        period_to=period.end.isoformat(),
+        rows=len(rows),
+        format="csv",
+    )
+    db.commit()
+    for r in rows:
         w.writerow(
             [
                 r.branch,

@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     upload_dir: str = "/data/uploads"
     max_upload_mb: int = 5
 
+    # Auth. Defaults are demo-only (public repo); a real deployment must override
+    # ADMIN_PASSWORD and JWT_SECRET. See NOTES.md.
+    admin_username: str = "admin"
+    admin_password: str = "admin2026#"
+    admin_full_name: str = "Summer Smith"
+    jwt_secret: str = "dev-only-change-me"
+    jwt_expire_minutes: int = 480
+    demo_manager_password: str = "manager2026#"
+
     @property
     def tz(self) -> ZoneInfo:
         return ZoneInfo(self.app_timezone)

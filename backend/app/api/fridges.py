@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.dashboard import period_spikes
 from app.api.period import resolve_period
+from app.auth import active_user, resolve_scope
 from app.config import Settings, get_settings
-from app.storage.models import Excursion, Fridge, Gap, Logger, Reading
+from app.storage.models import Excursion, Fridge, Gap, Logger, Reading, User
 from app.storage.session import get_db
 
 router = APIRouter(prefix="/api", tags=["fridges"])
@@ -63,6 +64,7 @@ def fridge_series(
     fridge_id: int,
     from_: date | None = Query(None, alias="from"),
     to: date | None = Query(None),
+    user: User = Depends(active_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> SeriesOut:
@@ -71,7 +73,8 @@ def fridge_series(
     )
     if fridge is None:
         raise HTTPException(404, "Fridge not found.")
-    period = resolve_period(db, settings, from_, to, fridge_id=fridge_id)
+    resolve_scope(db, user, None).check_fridge(fridge)  # 403 for another branch's fridge
+    period = resolve_period(db, settings, from_, to, fridge_ids=[fridge_id])
     codes: dict[int, str] = {i: c for i, c in db.execute(select(Logger.id, Logger.logger_code))}
 
     readings = [
@@ -88,6 +91,7 @@ def fridge_series(
                 Reading.fridge_id == fridge_id,
                 Reading.ts_utc >= period.start_utc,
                 Reading.ts_utc < period.end_utc,
+                Reading.is_voided.is_(False),
             )
             .order_by(Reading.ts_utc)
         )

@@ -1,0 +1,41 @@
+@use '@angular/material' as mat;
+
+.create {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 12px;
+  align-items: start;
+  button {
+    height: 56px;
+  }
+}
+@media (min-width: 900px) {
+  .create {
+    grid-template-columns: 1fr 1.2fr 1fr 1fr auto;
+  }
+}
+.small {
+  font-size: 12px;
+}
+.branch-select {
+  width: 170px;
+  @include mat.form-field-density(-4);
+}
+td.actions {
+  text-align: right;
+}
+.danger {
+  --mat-button-text-label-text-color: var(--sk-red-text);
+}
+tr.inactive td:not(.actions) {
+  opacity: 0.55;
+}
+:host-context(.mobileBreakpoint) {
+  .branch-select {
+    width: 100%;
+  }
+  td.actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}

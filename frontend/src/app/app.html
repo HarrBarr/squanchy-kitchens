@@ -1,48 +1,113 @@
 <div class="aurora-line" aria-hidden="true"></div>
-<mat-toolbar class="app-bar">
-  <a routerLink="/" class="brand" aria-label="Squanchy Kitchens home">
-    <span class="mark" aria-hidden="true"><mat-icon>kitchen</mat-icon></span>
-    <span class="name">Squanchy <span class="aurora-text">Kitchens</span></span>
-  </a>
-  <span class="spacer"></span>
-  <nav class="nav-wide" aria-label="Main">
-    <a
-      mat-button
-      routerLink="/"
-      routerLinkActive="active"
-      [routerLinkActiveOptions]="{ exact: true }"
-      >Dashboard</a
-    >
-    <a mat-button routerLink="/report" routerLinkActive="active">Inspector report</a>
-    <a mat-button routerLink="/registry" routerLinkActive="active">Logger registry</a>
-  </nav>
-  <button
-    mat-flat-button
-    class="btn-cta upload-btn"
-    (click)="openUpload()"
-    aria-label="Upload a logger file"
-  >
-    <mat-icon>upload_file</mat-icon>
-    <span class="upload-label">Upload</span>
-  </button>
-</mat-toolbar>
 
-<main class="page">
+@if (chrome()) {
+  <mat-toolbar class="app-bar">
+    <a routerLink="/" class="brand" aria-label="Squanchy Kitchens home">
+      <span class="mark" aria-hidden="true"><mat-icon>kitchen</mat-icon></span>
+      <span class="name">Squanchy <span class="aurora-text">Kitchens</span></span>
+    </a>
+    <span class="spacer"></span>
+    <nav class="nav-wide" aria-label="Main">
+      <a
+        mat-button
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        >Dashboard</a
+      >
+      <a mat-button routerLink="/report" routerLinkActive="active">Inspector report</a>
+      <a mat-button routerLink="/uploads" routerLinkActive="active">Uploads</a>
+      <a mat-button routerLink="/registry" routerLinkActive="active">Registry</a>
+      @if (auth.isAdmin()) {
+        <a mat-button routerLink="/review" routerLinkActive="active" data-testid="nav-review">
+          Review
+          @if (pending()) {
+            <span class="count" [attr.aria-label]="pending() + ' waiting for review'">{{
+              pending()
+            }}</span>
+          }
+        </a>
+      }
+    </nav>
+    <button
+      mat-flat-button
+      class="btn-cta upload-btn"
+      (click)="openUpload()"
+      aria-label="Upload a logger file"
+    >
+      <mat-icon>upload_file</mat-icon>
+      <span class="upload-label">Upload</span>
+    </button>
+    <button
+      mat-icon-button
+      class="account-btn"
+      [matMenuTriggerFor]="account"
+      [attr.aria-label]="'Account: ' + auth.user()?.full_name"
+      data-testid="account"
+    >
+      <span class="avatar">{{ auth.user()?.full_name?.charAt(0) }}</span>
+      @if (pending()) {
+        <span class="dot" aria-hidden="true"></span>
+      }
+    </button>
+  </mat-toolbar>
+}
+
+<!-- Account menu: top level so both the toolbar and the phone nav can open it. -->
+<mat-menu #account="matMenu" xPosition="before" class="account-menu">
+  <div class="who" (click)="$event.stopPropagation()">
+    <strong>{{ auth.user()?.full_name }}</strong>
+    <span class="muted">
+      {{ auth.isAdmin() ? 'Admin · all branches' : 'Branch manager · ' + auth.user()?.branch }}
+    </span>
+  </div>
+  <mat-divider />
+  <a mat-menu-item routerLink="/registry" class="phone-only"
+    ><mat-icon>sensors</mat-icon>Logger registry</a
+  >
+  @if (auth.isAdmin()) {
+    <a mat-menu-item routerLink="/review" class="phone-only">
+      <mat-icon>rule</mat-icon>Pending review
+      @if (pending()) {
+        <span class="count">{{ pending() }}</span>
+      }
+    </a>
+    <a mat-menu-item routerLink="/users" data-testid="menu-users"
+      ><mat-icon>group</mat-icon>Users</a
+    >
+    <a mat-menu-item routerLink="/audit"><mat-icon>history</mat-icon>Audit log</a>
+  }
+  <a mat-menu-item routerLink="/change-password"><mat-icon>key</mat-icon>Change password</a>
+  <mat-divider />
+  <button mat-menu-item (click)="auth.logout()" data-testid="logout">
+    <mat-icon>logout</mat-icon>Sign out
+  </button>
+</mat-menu>
+
+<main class="page" [class.bare]="!chrome()">
   <router-outlet />
 </main>
 
-<!-- Phone: bottom navigation, thumb-reachable -->
-<nav class="nav-bottom" aria-label="Main">
-  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-    <mat-icon>dashboard</mat-icon><span>Fridges</span>
-  </a>
-  <a routerLink="/report" routerLinkActive="active">
-    <mat-icon>assignment</mat-icon><span>Report</span>
-  </a>
-  <a routerLink="/registry" routerLinkActive="active">
-    <mat-icon>sensors</mat-icon><span>Registry</span>
-  </a>
-</nav>
+@if (chrome()) {
+  <!-- Phone: bottom navigation, thumb-reachable -->
+  <nav class="nav-bottom" aria-label="Main">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+      <mat-icon>dashboard</mat-icon><span>Fridges</span>
+    </a>
+    <a routerLink="/report" routerLinkActive="active">
+      <mat-icon>assignment</mat-icon><span>Report</span>
+    </a>
+    <a routerLink="/uploads" routerLinkActive="active">
+      <mat-icon>folder_open</mat-icon><span>Uploads</span>
+    </a>
+    <button type="button" [matMenuTriggerFor]="account" aria-label="Account and more">
+      <mat-icon>account_circle</mat-icon><span>Account</span>
+      @if (pending()) {
+        <span class="dot" aria-hidden="true"></span>
+      }
+    </button>
+  </nav>
+}
 
 @if (pageDrag()) {
   <div class="page-drop" aria-hidden="true">

@@ -11,14 +11,16 @@ from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.auth import create_access_token
 from app.config import Settings, get_settings
 from app.main import create_app
-from app.storage.models import Reading
+from app.storage.models import Reading, User
 from app.storage.session import get_db
 from tests.conftest import MOCK
 
 
-def make_client(session: Session, settings: Settings) -> TestClient:
+def make_client(session: Session, settings: Settings, as_user: str | None = "admin") -> TestClient:
+    """A TestClient on the test database, signed in as ``as_user`` (None = anonymous)."""
     app = create_app()
 
     def _db() -> Iterator[Session]:
@@ -26,7 +28,12 @@ def make_client(session: Session, settings: Settings) -> TestClient:
 
     app.dependency_overrides[get_db] = _db
     app.dependency_overrides[get_settings] = lambda: settings
-    return TestClient(app)
+    client = TestClient(app)
+    if as_user:
+        user = session.scalar(select(User).where(User.username == as_user))
+        assert user is not None, as_user
+        client.headers["Authorization"] = f"Bearer {create_access_token(user, settings)}"
+    return client
 
 
 @pytest.fixture(scope="module")
@@ -283,7 +290,8 @@ def test_one_early_upload_for_a_new_week_does_not_blank_the_dashboard(client):
     )
     assert d["fridges"][0]["branch"] == "Haifa" and d["fridges"][0]["colour"] == "red"
     walk_in = card(d, "Haifa", "Walk-in")
-    assert walk_in["colour"] == "grey" and walk_in["awaiting_upload"] is True
+    # Spec (auth): a week whose file has not arrived is amber, not grey.
+    assert walk_in["colour"] == "amber" and walk_in["awaiting_upload"] is True
     assert walk_in["reason"] == "Awaiting this week's file · last reading Sun 20 Sep 23:45"
     assert walk_in["last_seen_local"] == "2026-09-20T23:45:00"
     never = card(d, "Netanya", "Dairy")  # no file ever uploaded in this test
@@ -327,7 +335,7 @@ def test_ongoing_fridge_stays_red_until_a_newer_file_shows_recovery(client):
     # Ashdod's excursion recovered in W38: nothing to carry over.
     ashdod = card(d, "Ashdod", "Dairy")
     assert (ashdod["colour"], ashdod["still_above"], ashdod["still_above_note"]) == (
-        "grey",
+        "amber",
         False,
         None,
     )
