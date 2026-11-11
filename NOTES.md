@@ -115,7 +115,7 @@ I used two AI tools, one for planning and one for building:
 I set the direction, made the product decisions, used the app as Summer and as a branch
 manager, asked for the changes, and checked the results.
 
-- **One thing it got wrong:** the **Void** button did nothing. The click handler was named
+- **One thing Claude Code got wrong:** the **Void** button did nothing. The click handler was named
   `void`, and in an Angular template `(click)="void(u)"` is the JavaScript `void` operator,
   not a method call (the formatter even rewrote it to `(void u)`). It compiled, the unit
   tests passed (they only checked who *sees* the button), and every click silently did
@@ -128,7 +128,7 @@ manager, asked for the changes, and checked the results.
   [`frontend/src/app/uploads/uploads.spec.ts`](frontend/src/app/uploads/uploads.spec.ts)
   clicks the real Void, Dismiss and Flag buttons.
 - **Other things I rejected or caught:**
-  - It shipped demo passwords and a JWT secret as Compose defaults in this public repo, and
+  - Claude Code shipped demo passwords and a JWT secret as Compose defaults in this public repo, and
     first only hid them from the sign-in page. I had them removed (commit `c8ed28d`).
   - One early upload for a new week emptied the dashboard; I noticed while using it
     (commit `a66a46c`, regression test in `backend/tests/test_api.py`).
