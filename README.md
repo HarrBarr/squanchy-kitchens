@@ -89,6 +89,25 @@ voided correction had overwritten come back from the earlier file. Tokens are JW
 default). Logging out drops the token in the browser. A forgotten password is reset by Summer
 on the Users screen, which shows a one-time temporary password. Nothing is e-mailed.
 
+### Seeding users yourself
+
+The users can also be created or re-keyed with a standalone script, for example to hand
+out your own passwords instead of the defaults:
+
+```bash
+make seed-users                                   # prompts for the two passwords (hidden)
+make seed-users ARGS="--generate"                 # random passwords, printed once
+make seed-users ARGS="--generate --reset-passwords --format env"   # new passwords as .env lines
+# = docker compose exec api python -m app.seed_users [options]   (--help for all options)
+```
+
+It is idempotent: it creates whatever is missing and leaves existing users alone unless
+`--reset-passwords` is given. Passwords come from `ADMIN_PASSWORD` / `DEMO_MANAGER_PASSWORD`,
+from a hidden prompt, or are generated. They are never taken as command-line arguments
+(those end up in shell history), never logged, and printed only once. Other options:
+`--per-manager` (a different generated password per manager), `--must-change` (managers
+choose their own at first sign-in), `--admin-only` and `--managers-only`.
+
 ## Uploading a file
 
 Click **Upload** and pick a raw export, or **drag the file** onto the dialog's drop zone or anywhere on the page, which opens the dialog with the file already chosen. Then confirm the logger. Only `.csv`, `.txt` and `.tsv` files are accepted, one per upload, because each file has to be matched to its logger. If the file name contains the

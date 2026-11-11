@@ -1,5 +1,5 @@
 # Every target shells out to `docker compose`, so only Docker is needed on the host.
-.PHONY: up up-empty dev down seed-demo test test-backend test-frontend lint fmt reset-db logs
+.PHONY: up up-empty dev down seed-demo seed-users test test-backend test-frontend lint fmt reset-db logs
 
 COMPOSE = docker compose
 DEV = $(COMPOSE) -f docker-compose.yml -f docker-compose.dev.yml
@@ -18,6 +18,9 @@ down:
 
 seed-demo:       ## Import the mock week into a running stack (idempotent)
 	$(COMPOSE) exec api python -m app.bootstrap --demo
+
+seed-users:      ## Create the admin + branch managers. ARGS="--generate", "--reset-passwords", ...
+	$(COMPOSE) exec api python -m app.seed_users $(ARGS)
 
 test: test-backend test-frontend
 

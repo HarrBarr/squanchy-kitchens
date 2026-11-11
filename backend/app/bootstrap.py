@@ -10,17 +10,14 @@ import argparse
 import logging
 from pathlib import Path
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth import hash_password, utcnow
 from app.config import Settings, get_settings
 from app.ingest import ImportRejected, import_file, logger_code_from_filename
 from app.registry import seed_registry
+from app.seed_users import BRANCH_MANAGERS, seed_admin_user, seed_branch_managers
 from app.storage.models import (
-    ROLE_ADMIN,
-    ROLE_MANAGER,
-    Branch,
     Fridge,
     LoggerAssignment,
     Reading,
@@ -31,45 +28,19 @@ from app.storage.session import get_sessionmaker
 
 log = logging.getLogger("squanchy.bootstrap")
 
-# Demo branch managers (SEED_DEMO_DATA=true), one per branch. Demo-only credentials.
-DEMO_MANAGERS = {
-    "Haifa": "manager.haifa",
-    "Rishon LeZion": "manager.rishon",
-    "Tel Aviv": "manager.telaviv",
-    "Jerusalem": "manager.jerusalem",
-    "Be'er Sheva": "manager.beersheva",
-    "Netanya": "manager.netanya",
-    "Petah Tikva": "manager.petah",
-    "Ashdod": "manager.ashdod",
-    "Herzliya": "manager.herzliya",
-    "Beit Shemesh": "manager.beitshemesh",
-    "Kfar Saba": "manager.kfarsaba",
-    "Rehovot": "manager.rehovot",
-}
+# Kept for compatibility; the list lives in app.seed_users.
+DEMO_MANAGERS = BRANCH_MANAGERS
 
 
 def seed_admin(db: Session, settings: Settings) -> User:
-    """Create the admin if missing. Never overwrite an existing admin's password, or a
-    changed password would be reset on every container restart."""
-    username = settings.admin_username.strip().lower()
-    admin = db.scalar(select(User).where(User.username == username))
-    if admin is None:
-        admin = User(
-            username=username,
-            full_name=settings.admin_full_name,
-            password_hash=hash_password(settings.admin_password),
-            role=ROLE_ADMIN,
-            branch_id=None,
-            is_active=True,
-            must_change_password=False,
-            created_at=utcnow(),
-        )
-        db.add(admin)
-        db.flush()
-        log.info("created admin user %r", username)
-    # Uploads made before users existed belong to the admin.
-    db.execute(update(Upload).where(Upload.uploaded_by.is_(None)).values(uploaded_by=admin.id))
+    """Create the admin from ADMIN_PASSWORD if missing. Never overwrites an existing admin's
+    password, or a changed password would be reset on every container restart."""
+    res = seed_admin_user(db, settings, settings.admin_password)
     db.commit()
+    if res.action == "created":
+        log.info("created admin user %r", res.username)
+    admin = db.scalar(select(User).where(User.username == res.username))
+    assert admin is not None
     return admin
 
 
@@ -104,25 +75,10 @@ def backfill_upload_branches(db: Session) -> int:
 
 
 def seed_demo_managers(db: Session, settings: Settings) -> int:
-    n = 0
-    for branch_name, username in DEMO_MANAGERS.items():
-        b = db.scalar(select(Branch).where(Branch.name == branch_name))
-        if b is None or db.scalar(select(User).where(User.username == username)):
-            continue
-        db.add(
-            User(
-                username=username,
-                full_name=f"{branch_name} manager",
-                password_hash=hash_password(settings.demo_manager_password),
-                role=ROLE_MANAGER,
-                branch_id=b.id,
-                is_active=True,
-                must_change_password=False,  # demo convenience for reviewers
-                created_at=utcnow(),
-            )
-        )
-        n += 1
+    """One demo branch manager per branch (SEED_DEMO_DATA=true), DEMO_MANAGER_PASSWORD."""
+    results = seed_branch_managers(db, settings.demo_manager_password)
     db.commit()
+    n = sum(1 for r in results if r.action == "created")
     if n:
         log.info("created %d demo branch manager(s)", n)
     return n
