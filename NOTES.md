@@ -109,8 +109,10 @@ I used two AI tools, one for planning and one for building:
    Compose, the logger registry, the alert rules, testing against a known answer. It then
    wrote the development guide,
    [`squanchy-kitchens-development.md`](squanchy-kitchens-development.md), as the brief.
-2. **Claude Code (CLI), for building.** It developed and tested the app from that guide,
-   and wrote most of the code and tests.
+   Later, a second discussion with Grok about sign-in, roles and reviewing uploads produced
+   the auth spec, [`squanchy-kitchens-auth.md`](squanchy-kitchens-auth.md).
+2. **Claude Code (CLI), for building.** It developed and tested the app from those two
+   documents, and wrote most of the code and tests.
 
 I set the direction, made the product decisions, used the app as Summer and as a branch
 manager, asked for the changes, and checked the results.
@@ -140,7 +142,8 @@ manager, asked for the changes, and checked the results.
 ## Approach
 
 Assignment e-mail → planning discussion with Grok → development guide → build with Claude
-Code. The build followed the guide's order: the parser and the rules first, against mock
+Code. The sign-in and roles layer followed the same path: a discussion with Grok → the auth
+spec → built with Claude Code. The build followed the guide's order: the parser and the rules first, against mock
 files with a known answer (`data/expected_excursions.json`), with the golden test passing
 before the screens were built on top of a stable API. After that I used the app as Summer and
 as a branch manager, and had what got in the way fixed: the dashboard week logic, ongoing
