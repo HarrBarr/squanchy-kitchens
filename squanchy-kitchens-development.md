@@ -259,14 +259,15 @@ services:
       SEED_DEMO_DIR: /data/seed/mock-logger-files
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5}
-      # Auth (squanchy-kitchens-auth.md). Demo-only defaults: set ADMIN_PASSWORD and
-      # JWT_SECRET for any real use.
+      # Auth (squanchy-kitchens-auth.md). No secrets in the repo: empty values mean
+      # "generate on first start" (passwords printed once in the API log; JWT secret kept
+      # in the api-state volume).
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin2026#}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-Summer Smith}
-      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-480}
-      DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-manager2026#}
 ```
 
 The `web` service image is `squanchy-kitchens-web`, container `squanchy-kitchens-web`, publishing only `8080:80`.

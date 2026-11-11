@@ -48,16 +48,20 @@ services:
       SEED_DEMO_DIR: /data/seed/mock-logger-files
       UPLOAD_DIR: ${UPLOAD_DIR:-/data/uploads}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-5}
-      # Auth. Demo-only defaults (public repo): set ADMIN_PASSWORD and JWT_SECRET for real use.
+      # Auth. No passwords or secrets in the repository. Left empty, first start generates
+      # random sign-in passwords (printed once: `docker compose logs api`) and a random
+      # JWT secret kept in the api-state volume. Set them in .env to choose your own.
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin2026#}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-Summer Smith}
-      JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+      DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-480}
-      DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-manager2026#}
+      STATE_DIR: /data/state
     volumes:
       - ./data:/data/seed:ro
       - uploads:/data/uploads
+      - api-state:/data/state
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 5s
@@ -76,9 +80,11 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "8080:80"
+      # Only this machine can open the demo, not other devices on the network.
+      - "127.0.0.1:8080:80"
     restart: unless-stopped
 
 volumes:
   mysql-data:
   uploads:
+  api-state:

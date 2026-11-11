@@ -15,8 +15,11 @@ from __future__ import annotations
 
 import hashlib
 import os
+import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import bcrypt
@@ -72,10 +75,27 @@ def authenticate(db: Session, username: str, password: str) -> User | None:
 # ---------- tokens ----------
 
 
+@lru_cache
+def _persisted_secret(state_dir: str) -> str:
+    """The install's own random JWT secret, created on first use and kept in STATE_DIR (a
+    Docker volume), so tokens survive restarts and no secret ever lives in the repository."""
+    path = Path(state_dir) / "jwt_secret"
+    if path.exists():
+        return path.read_text().strip()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    secret = secrets.token_urlsafe(48)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(secret)
+    tmp.chmod(0o600)
+    tmp.replace(path)
+    return secret
+
+
 def _signing_key(settings: Settings) -> bytes:
-    """HMAC-SHA256 key: SHA-256 of JWT_SECRET, so the key is always 32 bytes whatever the
-    secret's length. (The secret itself still has to be private and random in production.)"""
-    return hashlib.sha256(settings.jwt_secret.encode("utf-8")).digest()
+    """HMAC-SHA256 key: SHA-256 of JWT_SECRET (or of the generated install secret), so the
+    key is always 32 bytes whatever the secret's length."""
+    secret = settings.jwt_secret or _persisted_secret(settings.state_dir)
+    return hashlib.sha256(secret.encode("utf-8")).digest()
 
 
 def create_access_token(user: User, settings: Settings) -> str:

@@ -1,11 +1,12 @@
 """Authentication, roles and branch scoping (squanchy-kitchens-auth.md §9).
 
-Users come from the seed: admin / admin2026#, and one branch manager per branch with the
-shared demo password manager2026# (manager.rishon, manager.telaviv, manager.ashdod, ...).
+Users come from the seed: admin, and one branch manager per branch (manager.rishon,
+manager.telaviv, manager.ashdod, ...), with the test-only passwords set in conftest.py.
 """
 
 from __future__ import annotations
 
+import os
 from decimal import Decimal
 
 import pytest
@@ -17,8 +18,8 @@ from app.storage.models import AuditLog, Excursion, Reading, Upload, User
 from tests.conftest import MOCK
 from tests.test_api import card, make_client
 
-ADMIN_PW = "admin2026#"
-MANAGER_PW = "manager2026#"
+ADMIN_PW = os.environ["ADMIN_PASSWORD"]
+MANAGER_PW = os.environ["DEMO_MANAGER_PASSWORD"]
 
 
 @pytest.fixture
@@ -404,3 +405,50 @@ def test_backfill_gives_old_uploads_their_branch(admin, db):
     assert backfill_upload_branches(db) == 1
     db.refresh(u)
     assert u.branch.name == "Rishon LeZion"
+
+
+# ---------- no secrets in the repository ----------
+
+
+def test_blank_compose_values_count_as_unset():
+    s = Settings(
+        database_url="unused", admin_password="", jwt_secret="  ", demo_manager_password=""
+    )
+    assert (s.admin_password, s.jwt_secret, s.demo_manager_password) == (None, None, None)
+
+
+def test_first_start_without_passwords_generates_them(engine, capsys):
+    from sqlalchemy.orm import sessionmaker
+
+    from app.auth import verify_password
+    from app.bootstrap import ensure_admin, missing_demo_managers, seed_demo_managers
+    from app.registry import seed_registry
+    from tests.conftest import DATA, wipe
+
+    wipe(engine)
+    db = sessionmaker(bind=engine, expire_on_commit=False)()
+    seed_registry(db, (DATA / "loggers.csv").read_text(encoding="utf-8"))
+    s = Settings(database_url="unused", admin_password="", demo_manager_password="")
+    admin, pw = ensure_admin(db, s)
+    assert pw and len(pw) >= 12 and verify_password(pw, admin.password_hash)
+    assert ensure_admin(db, s)[1] is None  # exists now: nothing generated, nothing shown
+    with pytest.raises(ValueError):
+        seed_demo_managers(db, s)  # refuses to invent a password silently
+    assert len(missing_demo_managers(db)) == 12
+    db.close()
+
+
+def test_jwt_secret_is_generated_once_per_install(tmp_path, monkeypatch):
+    from app import auth
+
+    auth._persisted_secret.cache_clear()
+    s = Settings(database_url="unused", jwt_secret="", state_dir=str(tmp_path))
+    k1 = auth._signing_key(s)
+    secret_file = tmp_path / "jwt_secret"
+    assert secret_file.exists() and len(secret_file.read_text()) >= 40
+    assert oct(secret_file.stat().st_mode & 0o777) == "0o600"
+    auth._persisted_secret.cache_clear()
+    assert auth._signing_key(s) == k1  # same secret after a restart
+    other = Settings(database_url="unused", jwt_secret="", state_dir=str(tmp_path / "other"))
+    assert auth._signing_key(other) != k1  # another install, another secret
+    auth._persisted_secret.cache_clear()

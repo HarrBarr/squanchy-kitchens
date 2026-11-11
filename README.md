@@ -33,7 +33,7 @@ docker compose up --build
 If you don't have Git, download the ZIP from GitHub, unzip it, `cd` into the folder and run
 the same command.
 
-Open **http://localhost:8080** and sign in (see [Sign-in](#sign-in-demo-accounts)). On the first start the API waits for MySQL, runs the
+Open **http://localhost:8080** and sign in (see [Sign-in](#sign-in)). On the first start the API waits for MySQL, runs the
 migrations and seeds the logger registry from `data/loggers.csv`. It then imports the mock
 week in `data/mock-logger-files/` (2026-W38, 14–20 Sep 2026). The dashboard should show
 **three red fridges**:
@@ -58,20 +58,38 @@ MySQL's port 3306 is **not** published, so it can't clash with a MySQL already o
 machine. The only published port is 8080. The OpenAPI docs are at
 http://localhost:8080/api/docs.
 
-## Sign-in (demo accounts)
+## Sign-in
 
-There is no public sign-up. On first start the API creates the admin, and with the default
-`SEED_DEMO_DATA=true` it also creates one branch manager per branch:
+There is no public sign-up, and **no password or secret is stored in this repository.** On
+the first start the API creates the admin (Summer Smith) and, with the default
+`SEED_DEMO_DATA=true`, one branch manager per branch: `manager.haifa`, `manager.rishon`,
+`manager.telaviv`, `manager.jerusalem`, `manager.beersheva`, `manager.netanya`,
+`manager.petah`, `manager.ashdod`, `manager.herzliya`, `manager.beitshemesh`,
+`manager.kfarsaba`, `manager.rehovot`.
 
-| Username | Password | Role | Sees |
-|---|---|---|---|
-| `admin` | `admin2026#` | admin (Summer Smith) | every branch, users, review, audit log |
-| `manager.rishon`, `manager.telaviv`, `manager.haifa`, `manager.jerusalem`, `manager.beersheva`, `manager.netanya`, `manager.petah`, `manager.ashdod`, `manager.herzliya`, `manager.beitshemesh`, `manager.kfarsaba`, `manager.rehovot` | `manager2026#` | branch manager | their own branch only |
+- **Passwords provided to you** (for example by e-mail): put them in a `.env` file next to
+  `docker-compose.yml` *before* the first start (see `.env.example`):
 
-**These credentials and the `JWT_SECRET` default are for a local demo only. They are
-published in this public repository.** A real deployment must set `ADMIN_PASSWORD` and
-`JWT_SECRET` (and `SEED_DEMO_DATA=false`) in the environment, and Summer must change her
-password before any real Ministry data goes in.
+  ```bash
+  ADMIN_PASSWORD=...
+  DEMO_MANAGER_PASSWORD=...
+  ```
+
+- **No `.env`:** random passwords are generated on the first start and printed **once** in the
+  API log:
+
+  ```bash
+  docker compose logs api | grep -A 8 "sign-in credentials"
+  ```
+
+- **Change them later**, or recover from a lost one: `make seed-users ARGS="--reset-passwords"`
+  (see [Seeding users yourself](#seeding-users-yourself)).
+
+The JWT signing secret is generated per install and kept in the `api-state` volume, unless
+you set `JWT_SECRET`. The web UI is published on `127.0.0.1` only, so other devices on the
+network cannot reach the demo. Tokens last 8 h by default; logging out drops the token in the
+browser. A forgotten password is reset by Summer on the Users screen, which shows a one-time
+temporary password. Nothing is e-mailed.
 
 What each role can do (the API enforces all of it; the UI only hides what you cannot use):
 
@@ -85,9 +103,7 @@ What each role can do (the API enforces all of it; the UI only hides what you ca
 
 Voiding is a soft delete: the file, its rows and the original upload stay on disk, the data
 disappears from the dashboard, charts and reports, and excursions are recomputed. Readings a
-voided correction had overwritten come back from the earlier file. Tokens are JWTs (8 h by
-default). Logging out drops the token in the browser. A forgotten password is reset by Summer
-on the Users screen, which shows a one-time temporary password. Nothing is e-mailed.
+voided correction had overwritten come back from the earlier file.
 
 ### Seeding users yourself
 

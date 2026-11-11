@@ -15,8 +15,17 @@ from collections.abc import Iterator
 from pathlib import Path
 
 os.environ.setdefault("BCRYPT_ROUNDS", "4")  # fast hashing in tests only (prod: 12)
+# Test-only credentials. The repository ships no passwords or secrets for real use.
+# Compose passes these as empty strings when unset, so "blank" counts as unset here too.
+for _key, _value in (
+    ("ADMIN_PASSWORD", "test-admin-pass"),
+    ("DEMO_MANAGER_PASSWORD", "test-manager-pass"),
+    ("JWT_SECRET", "test-only-jwt-secret"),
+):
+    if not os.environ.get(_key, "").strip():
+        os.environ[_key] = _value
 
-import pytest  # noqa: E402
+import pytest
 from alembic.config import Config
 from sqlalchemy import Engine, create_engine, delete, select, text
 from sqlalchemy.engine import make_url
@@ -101,7 +110,7 @@ def settings(tmp_path: Path) -> Settings:
 
 
 def seed_users(session: Session) -> None:
-    """The admin (admin / admin2026#) and the 12 demo branch managers (manager2026#)."""
+    """The admin and the 12 demo branch managers, with the test-only passwords above."""
     from app.bootstrap import seed_admin, seed_demo_managers
 
     s = Settings(database_url="unused")

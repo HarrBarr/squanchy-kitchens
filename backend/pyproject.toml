@@ -44,6 +44,10 @@ target-version = "py312"
 select = ["E", "F", "I", "B", "UP", "SIM"]
 ignore = ["B008"]  # FastAPI Depends()/Query() defaults are the idiom
 
+[tool.ruff.lint.per-file-ignores]
+# conftest sets test-only environment variables before importing the app.
+"tests/conftest.py" = ["E402"]
+
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true

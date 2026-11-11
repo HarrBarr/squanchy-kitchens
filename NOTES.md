@@ -93,17 +93,22 @@
   the overwritten values by re-reading the earlier upload's stored original. A voided file's
   hash no longer blocks re-uploading the same bytes (`active_sha256` is a unique column that
   is NULL once voided, because MySQL has no partial unique index).
-- **Passwords and `JWT_SECRET` defaults in this public repo are demo-only**, so a reviewer
-  can sign in after `docker compose up`. A real deployment must set `ADMIN_PASSWORD` and
-  `JWT_SECRET` in the environment and change the admin password. The admin is created
-  only if missing, so a changed password survives restarts. The HMAC key is the SHA-256 of
-  `JWT_SECRET`, which gives a 32-byte key whatever its length, but the secret itself still
-  has to be random and private.
+- **No passwords or secrets in the repository.** Early versions shipped demo defaults in
+  `docker-compose.yml`; they were removed and those values retired (they remain in git
+  history, so they must never be used). Now, with nothing configured, first start generates
+  random sign-in passwords (printed once in the API log, stored only as bcrypt hashes) and a
+  per-install JWT secret kept in a Docker volume, so `docker compose up` still needs no `.env`.
+  Reviewers get their passwords separately and put them in `.env`, or read the generated ones
+  from the log. `python -m app.seed_users` creates or re-keys accounts. The web port is bound
+  to 127.0.0.1. The admin is created only if missing, so a changed password survives
+  restarts. The MySQL passwords keep Compose defaults: MySQL is only on the internal Compose
+  network (3306 is not published); a real deployment sets its own.
 - **No self-service e-mail password reset in this version.** It would need Gmail or SMTP,
   which conflicts with "no accounts and no paid services". Summer resets a password from
   the Users screen and gets a one-time temporary password. The user must change it at next
   sign-in (the API answers `403 must_change_password` until they do).
-- **Seeded demo managers do not have to change their password**, and demo seed uploads are
+- **Seeded demo managers do not have to change their password** (use
+  `seed_users --must-change` for real accounts), and demo seed uploads are
   recorded as uploaded by the admin. A missing week for a fridge (no file yet) is now
   **amber** ("Awaiting upload"), per the auth spec, instead of the earlier grey. The
   dashboard shows each branch's last upload.

@@ -3,6 +3,7 @@
 from functools import lru_cache
 from zoneinfo import ZoneInfo
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,14 +29,22 @@ class Settings(BaseSettings):
     upload_dir: str = "/data/uploads"
     max_upload_mb: int = 5
 
-    # Auth. Defaults are demo-only (public repo); a real deployment must override
-    # ADMIN_PASSWORD and JWT_SECRET. See NOTES.md.
+    # Auth. No secrets have defaults in the repo. If ADMIN_PASSWORD / DEMO_MANAGER_PASSWORD
+    # are unset, first start generates random passwords and prints them once in the API log;
+    # if JWT_SECRET is unset, a random one is generated and kept in STATE_DIR.
     admin_username: str = "admin"
-    admin_password: str = "admin2026#"
+    admin_password: str | None = None
     admin_full_name: str = "Summer Smith"
-    jwt_secret: str = "dev-only-change-me"
+    jwt_secret: str | None = None
     jwt_expire_minutes: int = 480
-    demo_manager_password: str = "manager2026#"
+    demo_manager_password: str | None = None
+    state_dir: str = "/data/state"
+
+    @field_validator("admin_password", "jwt_secret", "demo_manager_password", mode="before")
+    @classmethod
+    def _blank_is_unset(cls, v: object) -> object:
+        # Compose passes ${VAR:-} as an empty string when the variable is not set.
+        return None if isinstance(v, str) and not v.strip() else v
 
     @property
     def tz(self) -> ZoneInfo:

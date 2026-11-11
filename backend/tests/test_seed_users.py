@@ -152,7 +152,7 @@ def test_startup_seeding_uses_the_same_functions(bare):
     from app.bootstrap import seed_admin, seed_demo_managers
 
     s = Settings(database_url="unused")
-    seed_admin(bare, s)
-    assert seed_demo_managers(bare, s) == 12
-    assert seed_demo_managers(bare, s) == 0  # idempotent
-    assert verify_password(s.demo_manager_password, user(bare, "manager.ashdod").password_hash)
+    seed_admin(bare, Settings(database_url="unused", admin_password="admin-pass-1"))
+    assert seed_demo_managers(bare, s, "branch-pass-9") == 12
+    assert seed_demo_managers(bare, s, "branch-pass-9") == 0  # idempotent
+    assert verify_password("branch-pass-9", user(bare, "manager.ashdod").password_hash)

@@ -9,10 +9,11 @@ services:
     environment:
       APP_ENV: development
     ports:
-      - "8000:8000"  # OpenAPI at http://localhost:8000/api/docs
+      - "127.0.0.1:8000:8000"  # OpenAPI at http://localhost:8000/api/docs
     volumes:
       - ./data:/data/seed:ro
       - uploads:/data/uploads
+      - api-state:/data/state
       - ./backend:/app
 
   web:
@@ -22,7 +23,7 @@ services:
     image: squanchy-kitchens-web-dev
     container_name: squanchy-kitchens-web-dev
     ports: !override
-      - "4200:4200"
+      - "127.0.0.1:4200:4200"
     volumes:
       - ./frontend:/app
       - /app/node_modules  # keep the image's Linux node_modules, not the host's

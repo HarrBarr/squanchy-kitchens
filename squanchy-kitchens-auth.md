@@ -1,5 +1,7 @@
 # Squanchy Kitchens: Authentication and Roles
 
+> **Repository copy:** the demo password and secret defaults from the original spec are redacted here. The implementation ships no secrets: see the README, "Sign-in".
+
 A self-contained feature spec for login, roles and audit in **Squanchy Kitchens**. The rest of the product (parser, rules, Compose, the three core screens) lives in `squanchy-kitchens-development.md`. Follow that file for stack, Docker-only review, and data rules. This file is only the auth layer.
 
 The assignment constraint still holds: the app must run on a laptop from the README, with no accounts at third-party services and no paid APIs. That is why there is no email password-reset and no OAuth provider. Demo users are seeded locally.
@@ -105,11 +107,11 @@ Compose defaults, same `${VAR:-default}` style as the rest of the stack. A `.env
 
 ```yaml
 ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin2026#}
+ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
 ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-Summer Smith}
-JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
+JWT_SECRET: ${JWT_SECRET:-}
 JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-480}
-DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-manager2026#}
+DEMO_MANAGER_PASSWORD: ${DEMO_MANAGER_PASSWORD:-}
 ```
 
 On first start, after migrations:
@@ -121,11 +123,11 @@ The README (and the login page in demo mode, if you want) must print the demo cr
 
 **Seeded admin**
 
-| Username | Password (Compose default) | Role | Branch |
+| Username | Password | Role | Branch |
 |---|---|---|---|
-| `admin` | `admin2026#` | admin | — (all branches) |
+| `admin` | *(provided separately)* | admin | — (all branches) |
 
-**Optional demo managers** (`SEED_DEMO_DATA=true`). Shared demo password: `manager2026#`.
+**Optional demo managers** (`SEED_DEMO_DATA=true`). Shared demo password: *(provided separately)*.
 
 | Username | Branch |
 |---|---|

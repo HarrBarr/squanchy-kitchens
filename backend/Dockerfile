@@ -11,7 +11,7 @@ RUN mkdir app && touch app/__init__.py && uv pip install --system ".[dev]"
 COPY . .
 RUN uv pip install --system --no-deps . \
     && chmod +x entrypoint.sh \
-    && mkdir -p /data/uploads
+    && mkdir -p /data/uploads /data/state
 
 EXPOSE 8000
 ENTRYPOINT ["/app/entrypoint.sh"]
