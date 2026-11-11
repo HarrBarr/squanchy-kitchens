@@ -1,11 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { Refresh } from './core/refresh';
-import { UploadDialog } from './upload/upload-dialog';
+import { dragHasFiles } from './upload/drop';
+import { UploadLauncher } from './upload/upload-launcher';
 
 @Component({
   selector: 'app-root',
@@ -19,10 +18,19 @@ import { UploadDialog } from './upload/upload-dialog';
   ],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  host: {
+    // A logger file can be dropped anywhere on the app, not only in the upload dialog.
+    // preventDefault also stops the browser from navigating away to open the dropped file.
+    '(window:dragenter)': 'onWindowDrag($event)',
+    '(window:dragover)': 'onWindowDrag($event)',
+    '(window:dragleave)': 'onWindowDragLeave($event)',
+    '(window:drop)': 'onWindowDrop($event)',
+  },
 })
 export class App {
-  private readonly dialog = inject(MatDialog);
-  private readonly refresh = inject(Refresh);
+  private readonly launcher = inject(UploadLauncher);
+  /** Full-page "drop to upload" overlay, only while files are dragged over the page. */
+  readonly pageDrag = signal(false);
 
   constructor() {
     // index.html loads the Material Symbols font.
@@ -30,11 +38,27 @@ export class App {
   }
 
   openUpload(): void {
-    this.dialog
-      .open(UploadDialog, { width: '560px', maxWidth: '95vw', autoFocus: false })
-      .afterClosed()
-      .subscribe((changed) => {
-        if (changed) this.refresh.bump();
-      });
+    this.launcher.open();
+  }
+
+  onWindowDrag(e: DragEvent): void {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    // With the dialog open, its own drop zone highlights instead.
+    this.pageDrag.set(!this.launcher.isOpen);
+  }
+
+  onWindowDragLeave(e: DragEvent): void {
+    // relatedTarget is null when the pointer leaves the browser window.
+    if (!e.relatedTarget) this.pageDrag.set(false);
+  }
+
+  onWindowDrop(e: DragEvent): void {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault();
+    this.pageDrag.set(false);
+    const files = e.dataTransfer?.files;
+    if (files?.length) this.launcher.open(files);
   }
 }

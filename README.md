@@ -56,7 +56,7 @@ http://localhost:8080/api/docs.
 
 ## Uploading a file
 
-Click **Upload**, pick a raw export and confirm the logger. If the file name contains the
+Click **Upload** and pick a raw export, or **drag the file** onto the dialog's drop zone or anywhere on the page, which opens the dialog with the file already chosen. Then confirm the logger. Only `.csv`, `.txt` and `.tsv` files are accepted, one per upload, because each file has to be matched to its logger. If the file name contains the
 code, e.g. `TL-0512_2026-W38.csv`, the logger is pre-selected and you can change it. The
 import summary lists new, duplicate and updated readings, sensor errors, gaps and
 excursions, plus any warnings.

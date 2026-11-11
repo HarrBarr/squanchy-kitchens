@@ -90,3 +90,40 @@
     padding: 24px;
   }
 }
+
+.page-drop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(18, 52, 59, 0.55);
+  pointer-events: none; // the drop lands on the window, not on this overlay
+}
+.page-drop-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  max-width: 420px;
+  padding: 32px 28px;
+  border: 3px dashed var(--sk-accent);
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+
+  mat-icon {
+    font-size: 44px;
+    width: 44px;
+    height: 44px;
+    color: var(--sk-accent);
+  }
+  strong {
+    font-size: 18px;
+  }
+  span {
+    color: var(--mat-sys-on-surface-variant);
+  }
+}

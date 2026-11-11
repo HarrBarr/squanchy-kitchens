@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -10,6 +10,12 @@ import { RouterLink } from '@angular/router';
 import { Api, errorMessage } from '../core/api';
 import { loggerFromFilename } from '../core/format';
 import { ImportSummary, LoggerInfo } from '../core/models';
+import { dragHasFiles, isLoggerExport, pickDroppedFile } from './drop';
+
+export interface UploadDialogData {
+  /** Files dropped on the page before the dialog opened. */
+  files?: ArrayLike<File> | null;
+}
 
 @Component({
   selector: 'app-upload-dialog',
@@ -29,6 +35,7 @@ import { ImportSummary, LoggerInfo } from '../core/models';
 export class UploadDialog {
   private readonly api = inject(Api);
   private readonly ref = inject(MatDialogRef<UploadDialog, boolean>);
+  private readonly data = inject<UploadDialogData | null>(MAT_DIALOG_DATA, { optional: true });
 
   readonly loggers = signal<LoggerInfo[]>([]);
   readonly file = signal<File | null>(null);
@@ -37,6 +44,8 @@ export class UploadDialog {
   readonly busy = signal(false);
   readonly error = signal<string | null>(null);
   readonly result = signal<ImportSummary | null>(null);
+  readonly notice = signal<string | null>(null);
+  readonly dragging = signal(false);
   readonly canSubmit = computed(() => !!this.file() && !!this.logger() && !this.busy());
 
   private changed = false;
@@ -49,6 +58,7 @@ export class UploadDialog {
       },
       error: (e) => this.error.set(errorMessage(e)),
     });
+    if (this.data?.files) this.acceptFiles(this.data.files);
   }
 
   label(l: LoggerInfo): string {
@@ -60,14 +70,53 @@ export class UploadDialog {
 
   onFile(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.setFile(input.files?.[0] ?? null);
+    const f = input.files?.[0] ?? null;
+    input.value = ''; // so choosing the same file again still fires (change)
+    if (f && !isLoggerExport(f)) {
+      this.acceptFiles([f]);
+      return;
+    }
+    this.setFile(f);
   }
 
   setFile(f: File | null): void {
     this.file.set(f);
     this.result.set(null);
     this.error.set(null);
+    this.notice.set(null);
     this.guessFromFilename();
+  }
+
+  /** Files from a drop (on the zone, the dialog, or the page). */
+  acceptFiles(files: ArrayLike<File>): void {
+    if (this.busy()) return;
+    const pick = pickDroppedFile(files);
+    if (pick.file) this.setFile(pick.file);
+    this.notice.set(pick.notice);
+  }
+
+  // Drag and drop on the drop zone. stopPropagation keeps the page-level drop handler
+  // from also seeing the drop.
+  onDragOver(e: DragEvent): void {
+    if (!dragHasFiles(e) || this.busy()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    this.dragging.set(true);
+  }
+
+  onDragLeave(e: DragEvent): void {
+    const zone = e.currentTarget as HTMLElement | null;
+    if (zone && e.relatedTarget instanceof Node && zone.contains(e.relatedTarget)) return;
+    this.dragging.set(false);
+  }
+
+  onDrop(e: DragEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    this.dragging.set(false);
+    if (this.result()) this.another();
+    this.acceptFiles(e.dataTransfer?.files ?? []);
   }
 
   selectLogger(code: string | null): void {
@@ -111,6 +160,7 @@ export class UploadDialog {
     this.file.set(null);
     this.logger.set(null);
     this.result.set(null);
+    this.notice.set(null);
   }
 
   close(): void {

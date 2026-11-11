@@ -37,3 +37,13 @@
     <mat-icon>sensors</mat-icon><span>Registry</span>
   </a>
 </nav>
+
+@if (pageDrag()) {
+  <div class="page-drop" aria-hidden="true">
+    <div class="page-drop-box">
+      <mat-icon>file_download</mat-icon>
+      <strong>Drop a logger file to upload it</strong>
+      <span>You'll confirm the logger before anything is imported.</span>
+    </div>
+  </div>
+}

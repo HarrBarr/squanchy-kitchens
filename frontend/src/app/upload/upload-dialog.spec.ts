@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideRouter } from '@angular/router';
 import { LoggerInfo } from '../core/models';
 import { UploadDialog } from './upload-dialog';
@@ -24,6 +24,17 @@ describe('UploadDialog', () => {
   let fixture: ComponentFixture<UploadDialog>;
   let dialog: UploadDialog;
   let http: HttpTestingController;
+
+  /** jsdom has no DataTransfer: build a drag event carrying files by hand. */
+  function drag(type: string, files: File[]): Event {
+    const ev = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, 'dataTransfer', {
+      value: { files, types: ['Files'], dropEffect: 'none' },
+    });
+    return ev;
+  }
+  const zone = () =>
+    fixture.nativeElement.querySelector('[data-testid="drop-zone"]') as HTMLElement;
 
   const submitButton = () =>
     fixture.nativeElement.querySelector('[data-testid="submit"]') as HTMLButtonElement;
@@ -87,5 +98,66 @@ describe('UploadDialog', () => {
       );
     await fixture.whenStable();
     expect(fixture.nativeElement.textContent).toContain('is not in the registry');
+  });
+
+  it('accepts a file dropped on the drop zone and pre-selects its logger', async () => {
+    zone().dispatchEvent(drag('dragover', [new File(['x'], 'TL-0231_2026-W39.csv')]));
+    await fixture.whenStable();
+    expect(zone().classList).toContain('dragging');
+    expect(zone().textContent).toContain('Drop the file');
+
+    const drop = drag('drop', [new File(['x'], 'TL-0231_2026-W39.csv')]);
+    zone().dispatchEvent(drop);
+    await fixture.whenStable();
+    expect(drop.defaultPrevented).toBe(true); // the browser must not open the file
+    expect(zone().classList).not.toContain('dragging');
+    expect(dialog.file()?.name).toBe('TL-0231_2026-W39.csv');
+    expect(dialog.logger()).toBe('TL-0231');
+    expect(submitButton().disabled).toBe(false);
+  });
+
+  it('refuses a dropped file that is not a logger export', async () => {
+    zone().dispatchEvent(drag('drop', [new File(['x'], 'holiday.jpg')]));
+    await fixture.whenStable();
+    expect(dialog.file()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('holiday.jpg is not a logger export');
+    expect(submitButton().disabled).toBe(true);
+  });
+
+  it('uses the first file when several are dropped, and says so', async () => {
+    zone().dispatchEvent(
+      drag('drop', [
+        new File(['x'], 'TL-0512_2026-W38.csv'),
+        new File(['x'], 'TL-0417_2026-W38.csv'),
+      ]),
+    );
+    await fixture.whenStable();
+    expect(dialog.file()?.name).toBe('TL-0512_2026-W38.csv');
+    expect(fixture.nativeElement.querySelector('[data-testid="notice"]').textContent).toContain(
+      'One file at a time',
+    );
+  });
+});
+
+describe('UploadDialog opened by a drop on the page', () => {
+  it('starts with the dropped file and its logger chosen', async () => {
+    await TestBed.configureTestingModule({
+      imports: [UploadDialog],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: MatDialogRef, useValue: { close: vi.fn() } },
+        {
+          provide: MAT_DIALOG_DATA,
+          useValue: { files: [new File(['x'], 'TL-0512_2026-W38.csv')] },
+        },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(UploadDialog);
+    TestBed.inject(HttpTestingController).expectOne('/api/loggers').flush(LOGGERS);
+    await fixture.whenStable();
+    expect(fixture.componentInstance.file()?.name).toBe('TL-0512_2026-W38.csv');
+    expect(fixture.componentInstance.logger()).toBe('TL-0512');
   });
 });

@@ -8,16 +8,42 @@
       in.
     </p>
 
-    <label class="file-drop" [class.has-file]="file()">
+    <label
+      class="file-drop"
+      [class.has-file]="file()"
+      [class.dragging]="dragging()"
+      (dragenter)="onDragOver($event)"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)"
+      data-testid="drop-zone"
+    >
       <input
         type="file"
         accept=".csv,.txt,.tsv,text/csv,text/plain"
         (change)="onFile($event)"
         data-testid="file"
       />
-      <mat-icon>{{ file() ? 'description' : 'upload_file' }}</mat-icon>
-      <span>{{ file()?.name ?? 'Choose a file…' }}</span>
+      <mat-icon>{{
+        dragging() ? 'file_download' : file() ? 'description' : 'upload_file'
+      }}</mat-icon>
+      <span class="drop-text">
+        @if (dragging()) {
+          <strong>Drop the file to use it</strong>
+        } @else if (file(); as f) {
+          <strong>{{ f.name }}</strong>
+          <small>Drop another file here or click to change it</small>
+        } @else {
+          <strong>Drag a logger file here</strong>
+          <small>or click to choose one (.csv, .txt, .tsv)</small>
+        }
+      </span>
     </label>
+    @if (notice()) {
+      <div class="msg warn" role="status" data-testid="notice">
+        <mat-icon>info</mat-icon> {{ notice() }}
+      </div>
+    }
 
     <mat-form-field appearance="outline" class="full">
       <mat-label>Logger</mat-label>

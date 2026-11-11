@@ -2,7 +2,6 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -12,7 +11,7 @@ import { Api, errorMessage } from '../core/api';
 import { addDays, COLOUR_LABEL, colourFor, fmtTemp } from '../core/format';
 import { Branch, Dashboard } from '../core/models';
 import { Refresh } from '../core/refresh';
-import { UploadDialog } from '../upload/upload-dialog';
+import { UploadLauncher } from '../upload/upload-launcher';
 
 @Component({
   selector: 'app-dashboard',
@@ -32,7 +31,7 @@ export class DashboardPage {
   private readonly api = inject(Api);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly dialog = inject(MatDialog);
+  private readonly launcher = inject(UploadLauncher);
   private readonly refresh = inject(Refresh);
 
   private readonly query = toSignal(this.route.queryParamMap, { requireSync: true });
@@ -98,9 +97,6 @@ export class DashboardPage {
   }
 
   upload(): void {
-    this.dialog
-      .open(UploadDialog, { width: '560px', maxWidth: '95vw', autoFocus: false })
-      .afterClosed()
-      .subscribe((changed) => changed && this.refresh.bump());
+    this.launcher.open();
   }
 }
