@@ -1,6 +1,7 @@
 <div class="page-head">
   <div>
-    <h1>How every fridge is doing</h1>
+    <div class="eyebrow">Squanchy Bakery · fridge monitor</div>
+    <h1>How every <span class="aurora-text">fridge</span> is doing</h1>
     <div class="sub">
       Food-safety limit {{ data()?.threshold_c ?? 5 }}°C · times in Asia/Jerusalem
     </div>
@@ -37,12 +38,22 @@
 </div>
 
 @if (data(); as d) {
-  <div class="counts" aria-label="Summary">
-    <span class="pill red">{{ d.counts.red }} above 5°C</span>
-    <span class="pill amber">{{ d.counts.amber }} check data</span>
-    <span class="pill green">{{ d.counts.green }} OK</span>
+  <div class="stats" aria-label="Summary">
+    <div class="stat red">
+      <span class="n">{{ d.counts.red }}</span><span class="l">Above {{ d.threshold_c }}°C</span>
+    </div>
+    <div class="stat amber">
+      <span class="n">{{ d.counts.amber }}</span><span class="l">Check data</span>
+    </div>
+    <div class="stat green">
+      <span class="n">{{ d.counts.green }}</span><span class="l">OK</span>
+    </div>
     @if (d.counts.grey) {
-      <span class="pill grey">{{ d.counts.grey }} no data</span>
+      <div class="stat grey">
+        <span class="n">{{ d.counts.grey }}</span><span class="l">{{
+          incomplete() ? 'Awaiting upload' : 'No data'
+        }}</span>
+      </div>
     }
   </div>
 }
@@ -82,7 +93,7 @@
       <div class="state">
         <mat-icon>upload_file</mat-icon>
         <p>No readings for {{ d.period_label }}. Drag a logger file anywhere onto this page, or</p>
-        <button mat-flat-button (click)="upload()">Upload logger files</button>
+        <button mat-flat-button class="btn-cta" (click)="upload()">Upload logger files</button>
       </div>
     }
     <div class="grid">
@@ -90,6 +101,7 @@
         @let c = colourFor(f);
         <a
           class="card {{ c }}"
+          [class.now-above]="f.ongoing"
           [routerLink]="['/fridges', f.fridge_id]"
           [queryParams]="detailParams()"
         >
@@ -107,14 +119,14 @@
               >{{ cardLabel(f, c) }}</span
             >
           </div>
-          <div class="temp">
+          <div class="temp mono">
             {{ fmtTemp(f.last_temp_c) }}
             @if (f.ongoing) {
-              <span class="ongoing">Ongoing</span>
+              <span class="ongoing">● Ongoing</span>
             }
           </div>
           <div class="reason">{{ f.reason }}</div>
-          <div class="foot">
+          <div class="foot mono">
             @if (f.last_reading_local) {
               <span>Last {{ f.last_reading_local | date: 'EEE d MMM HH:mm' }}</span>
             } @else if (f.still_above && f.last_seen_local) {

@@ -5,7 +5,8 @@
 @if (data(); as d) {
   <div class="page-head">
     <div>
-      <h1>{{ d.branch }} · {{ d.fridge }}</h1>
+      <div class="eyebrow">{{ d.branch }}</div>
+      <h1>{{ d.fridge }}</h1>
       <div class="sub">Logger {{ loggers().join(', ') || '—' }} · Asia/Jerusalem time</div>
     </div>
     <div class="period-nav" role="group" aria-label="Week">

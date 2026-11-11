@@ -132,11 +132,17 @@
 <mat-dialog-actions align="end">
   @if (!result()) {
     <button mat-button (click)="close()">Cancel</button>
-    <button mat-flat-button [disabled]="!canSubmit()" (click)="submit()" data-testid="submit">
+    <button
+      mat-flat-button
+      class="btn-cta"
+      [disabled]="!canSubmit()"
+      (click)="submit()"
+      data-testid="submit"
+    >
       Upload
     </button>
   } @else {
     <button mat-button (click)="another()">Upload another</button>
-    <button mat-flat-button (click)="close()">Done</button>
+    <button mat-flat-button class="btn-cta" (click)="close()">Done</button>
   }
 </mat-dialog-actions>

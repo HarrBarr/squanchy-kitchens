@@ -1,6 +1,7 @@
 <div class="page-head">
   <div>
-    <h1>Inspector report</h1>
+    <div class="eyebrow">Ministry of Health</div>
+    <h1>Inspector <span class="aurora-text">report</span></h1>
     <div class="sub">
       Every period a fridge was above {{ data()?.threshold_c ?? 5 }}°C for two or more readings in a
       row. Single door-opening spikes are not listed.
@@ -36,7 +37,7 @@
       }
     </mat-select>
   </mat-form-field>
-  <a mat-flat-button [href]="csvUrl()" [attr.aria-disabled]="!data()"
+  <a mat-flat-button class="btn-cta" [href]="csvUrl()" [attr.aria-disabled]="!data()"
     ><mat-icon>download</mat-icon> CSV</a
   >
   <button mat-stroked-button (click)="print()"><mat-icon>print</mat-icon> Print</button>

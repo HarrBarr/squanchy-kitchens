@@ -1,111 +1,49 @@
 .toolbar-row mat-form-field {
   width: 200px;
 }
-.counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 8px;
-}
-@media (min-width: 600px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-@media (min-width: 960px) {
-  .grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-.card {
-  display: block;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: #fff;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-left: 6px solid var(--sk-grey);
-  color: inherit;
-  text-decoration: none;
-  transition: box-shadow 0.15s ease;
 
-  &:hover,
-  &:focus-visible {
-    box-shadow: 0 4px 14px rgba(18, 52, 59, 0.12);
-  }
-  &.red {
-    border-left-color: var(--sk-red);
-    background: var(--sk-red-bg);
-  }
-  &.amber {
-    border-left-color: #f59f00;
-  }
-  &.green {
-    border-left-color: var(--sk-green);
-  }
-}
-.top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-.branch {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--mat-sys-on-surface-variant);
-}
-.fridge {
-  font-size: 17px;
-  font-weight: 600;
-}
-.temp {
-  font-size: 30px;
-  font-weight: 600;
-  margin: 8px 0 2px;
-  font-variant-numeric: tabular-nums;
-  display: flex;
-  align-items: center;
+// Summary tiles
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
+  margin-bottom: 16px;
 }
-.red .temp {
-  color: var(--sk-red);
-}
-.ongoing {
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--sk-red);
-  border-radius: 999px;
-  padding: 2px 8px;
-  animation: pulse 1.6s ease-in-out infinite;
-}
-@keyframes pulse {
-  50% {
-    opacity: 0.55;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ongoing {
-    animation: none;
-  }
-}
-.reason {
-  font-weight: 500;
-}
-.foot {
+.stat {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-top: 8px;
-  font-size: 12px;
-  color: var(--mat-sys-on-surface-variant);
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--sk-glass);
+  border: 1px solid var(--sk-line);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--sk-highlight);
+
+  .n {
+    font-family: var(--sk-font-mono);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .l {
+    font-size: 12px;
+    color: var(--sk-muted);
+  }
+  &.red .n {
+    color: var(--sk-red-text);
+    text-shadow: 0 0 24px var(--sk-red-glow);
+  }
+  &.amber .n {
+    color: var(--sk-amber);
+  }
+  &.green .n {
+    color: var(--sk-green);
+  }
+  &.grey .n {
+    color: var(--sk-grey);
+  }
 }
 
 .incomplete {
@@ -113,20 +51,186 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
-  padding: 12px 14px;
-  margin-bottom: 12px;
-  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 18px;
   background: var(--sk-amber-bg);
-  color: #6b3a00;
+  border: 1px solid rgba(255, 196, 138, 0.3);
+  color: #ffe0bf;
 
+  mat-icon {
+    color: var(--sk-amber);
+  }
   div {
     flex: 1 1 260px;
   }
 }
-.card.grey {
-  background: transparent;
-  border-style: dashed;
-  .temp {
-    color: var(--mat-sys-on-surface-variant);
+
+// Fridge cards: liquid glass with a status glow
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 8px;
+}
+@media (min-width: 600px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
   }
+}
+@media (min-width: 980px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  --glow: transparent;
+  --edge: var(--sk-line);
+  position: relative;
+  display: block;
+  overflow: hidden;
+  padding: 18px 18px 16px;
+  border-radius: var(--sk-radius);
+  background: var(--sk-glass);
+  border: 1px solid var(--edge);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow:
+    var(--sk-highlight),
+    0 24px 60px rgba(3, 4, 9, 0.45);
+  color: var(--sk-text);
+  text-decoration: none;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+
+  // Soft status-coloured light in the top corner.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -40% -20% auto auto;
+    width: 70%;
+    height: 90%;
+    background: radial-gradient(closest-side, var(--glow), transparent);
+    pointer-events: none;
+  }
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(245, 247, 255, 0.28);
+    color: var(--sk-text);
+    outline: none;
+  }
+  &:focus-visible {
+    box-shadow:
+      0 0 0 2px var(--sk-accent),
+      0 24px 60px rgba(3, 4, 9, 0.45);
+  }
+
+  &.red {
+    --glow: rgba(255, 92, 92, 0.32);
+    --edge: rgba(255, 92, 92, 0.5);
+    box-shadow:
+      var(--sk-highlight),
+      0 0 0 1px rgba(255, 92, 92, 0.15),
+      0 24px 70px rgba(255, 92, 92, 0.16);
+  }
+  &.amber {
+    --glow: rgba(255, 196, 138, 0.2);
+    --edge: rgba(255, 196, 138, 0.32);
+  }
+  &.green {
+    --glow: rgba(139, 240, 176, 0.1);
+  }
+  &.grey {
+    background: rgba(14, 17, 38, 0.3);
+    border-style: dashed;
+    box-shadow: none;
+    .temp {
+      color: var(--sk-grey);
+    }
+  }
+}
+
+.top {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.branch {
+  font-family: var(--sk-font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--sk-muted);
+}
+.fridge {
+  font-family: var(--sk-font-display);
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.temp {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 4px;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+// Only a fridge that is above the limit right now gets a red temperature; a recovered
+// one (red card for the period) shows its current, healthy reading in plain text.
+.card.now-above .temp {
+  color: var(--sk-red-text);
+  text-shadow: 0 0 28px var(--sk-red-glow);
+}
+.ongoing {
+  font-family: var(--sk-font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow: none;
+  color: #fff;
+  background: var(--sk-red);
+  border-radius: 999px;
+  padding: 3px 10px;
+  box-shadow: 0 0 18px rgba(255, 92, 92, 0.6);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    box-shadow: 0 0 4px rgba(255, 92, 92, 0.3);
+    opacity: 0.75;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ongoing {
+    animation: none;
+  }
+  .card {
+    transition: none;
+  }
+}
+.reason {
+  position: relative;
+  font-weight: 500;
+  color: var(--sk-text);
+}
+.foot {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--sk-line-soft);
+  font-size: 11px;
+  color: var(--sk-muted);
 }

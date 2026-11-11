@@ -30,6 +30,9 @@
               }
             ],
             "styles": [
+              "@fontsource-variable/inter/index.css",
+              "@fontsource-variable/sora/index.css",
+              "@fontsource-variable/jetbrains-mono/index.css",
               "src/styles.scss"
             ]
           },
@@ -43,8 +46,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "6kB",
+                  "maximumError": "10kB"
                 }
               ],
               "outputHashing": "all"

@@ -69,6 +69,13 @@
   herself. The seed file isn't the only way in.
 - **No email ingestion, no LLM or agent.** A file picker plus a logger dropdown is what she
   asked for. Reading her inbox would be a later convenience.
+- **Visual theme from the Simple To Work brand directions ("Northern lights", Glow).** It is
+  dark by default because Summer reads it on her phone, often in a dim back room. Status
+  colours stay the brand's ok / warn colours plus the Sunset aurora red `#FF5C5C`, so "above
+  5°C" is never confused with decoration. Only a fridge that is above the limit *right now*
+  gets a glowing red temperature; a recovered fridge in a red week shows its healthy reading
+  in plain text. Fonts are self-hosted (no Google Fonts call at runtime, except the Material
+  Symbols icon font). The print stylesheet resets to ink on white for the inspector.
 - **Tooling:** Angular 22 is the version `ng new` scaffolds today, and its default test
   runner is Vitest, so the frontend tests run in plain Node with no browser in the image.
   I used **npm** throughout instead of the pnpm in the plan, picked once and used

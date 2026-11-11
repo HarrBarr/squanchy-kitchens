@@ -1,64 +1,213 @@
 @use '@angular/material' as mat;
 
+// Simple To Work brand · "Northern lights" palette, Glow direction.
+// Night-sky base, aurora glows, liquid-glass surfaces. Sora / Inter / JetBrains Mono.
+:root {
+  // Base palette (from the brand directions)
+  --sk-bg: #05060f;
+  --sk-bg2: #0a0c1c;
+  --sk-deep: #030409;
+  --sk-panel: #0e1126;
+  --sk-text: #f5f7ff;
+  --sk-muted: #b3bad6;
+  --sk-accent: #7cf2c8;
+  --sk-accent-hover: #b5f8e2;
+  --sk-aur1: #6a5cff;
+  --sk-aur2: #ff5ca8;
+  --sk-aur3: #2fd5ff;
+  --sk-aurora: linear-gradient(90deg, var(--sk-aur1), var(--sk-aur2), var(--sk-aur3));
+
+  // Status. Red is the brand's Sunset aurora red: unmistakable for "above 5°C".
+  --sk-red: #ff5c5c;
+  --sk-red-text: #ff8a8a;
+  --sk-red-bg: rgba(255, 92, 92, 0.14);
+  --sk-red-glow: rgba(255, 92, 92, 0.28);
+  --sk-amber: #ffc48a;
+  --sk-amber-bg: rgba(255, 196, 138, 0.12);
+  --sk-green: #8bf0b0;
+  --sk-green-bg: rgba(139, 240, 176, 0.1);
+  --sk-grey: #8a91ad;
+  --sk-grey-bg: rgba(245, 247, 255, 0.05);
+  --sk-info: #8fc8ff;
+
+  // Glass
+  --sk-line: rgba(245, 247, 255, 0.14);
+  --sk-line-soft: rgba(245, 247, 255, 0.08);
+  --sk-glass: rgba(14, 17, 38, 0.55);
+  --sk-glass-strong: rgba(14, 17, 38, 0.82);
+  --sk-highlight: inset 0 1px 0 rgba(245, 247, 255, 0.12);
+  --sk-shadow: 0 30px 80px rgba(3, 4, 9, 0.55);
+  --sk-radius: 22px;
+
+  --sk-font-display: 'Sora Variable', 'Sora', system-ui, sans-serif;
+  --sk-font-body: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --sk-font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+}
+
 html {
   height: 100%;
+  color-scheme: dark;
   @include mat.theme(
     (
       color: (
+        theme-type: dark,
         primary: mat.$cyan-palette,
-        tertiary: mat.$orange-palette,
+        tertiary: mat.$violet-palette,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: 'Inter Variable',
+        brand-family: 'Sora Variable',
+      ),
       density: 0,
     )
   );
-
-  --sk-ink: #12343b;
-  --sk-accent: #d9480f;
-  --sk-red: #c92a2a;
-  --sk-red-bg: #fff0f0;
-  --sk-amber: #b35c00;
-  --sk-amber-bg: #fff6e5;
-  --sk-green: #2b8a3e;
-  --sk-green-bg: #effaf1;
-  --sk-grey: #6b7280;
-  --sk-grey-bg: #f3f4f6;
+  // Map Material's system tokens onto the brand palette.
+  @include mat.theme-overrides(
+    (
+      primary: #7cf2c8,
+      on-primary: #05060f,
+      primary-container: rgba(124, 242, 200, 0.16),
+      on-primary-container: #b5f8e2,
+      surface: #0a0c1c,
+      on-surface: #f5f7ff,
+      on-surface-variant: #b3bad6,
+      surface-container-lowest: #05060f,
+      surface-container-low: #0a0c1c,
+      surface-container: #0e1126,
+      surface-container-high: #13173a,
+      surface-container-highest: #191e46,
+      outline: rgba(245, 247, 255, 0.32),
+      outline-variant: rgba(245, 247, 255, 0.14),
+      error: #ff5c5c,
+      inverse-surface: #f5f7ff,
+      inverse-on-surface: #05060f,
+    )
+  );
+  @include mat.dialog-overrides(
+    (
+      container-color: #0e1126,
+      container-shape: 24px,
+      subhead-font: var(--sk-font-display),
+    )
+  );
+  @include mat.tooltip-overrides(
+    (
+      container-color: #f5f7ff,
+      supporting-text-color: #05060f,
+    )
+  );
 }
 
 body {
-  color-scheme: light;
-  background-color: #f6f8f9;
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
   margin: 0;
-  height: 100%;
+  min-height: 100%;
+  background: var(--sk-bg);
+  color: var(--sk-text);
+  font-family: var(--sk-font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Aurora glow behind everything (fixed, soft, decorative).
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20vh -20vw;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 32% at 18% 8%, rgba(106, 92, 255, 0.28), transparent 70%),
+    radial-gradient(30% 28% at 82% 4%, rgba(255, 92, 168, 0.18), transparent 70%),
+    radial-gradient(40% 36% at 70% 92%, rgba(47, 213, 255, 0.14), transparent 70%),
+    linear-gradient(180deg, var(--sk-bg2), var(--sk-bg) 60%);
+  animation: sk-aurora 48s ease-in-out infinite alternate;
+}
+
+@keyframes sk-aurora {
+  to {
+    transform: translate3d(3vw, 2vh, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
+}
+
+a {
+  color: var(--sk-accent);
+}
+a:hover {
+  color: var(--sk-accent-hover);
 }
 
 h1,
 h2,
 h3 {
   margin: 0;
+  font-family: var(--sk-font-display);
+  letter-spacing: -0.01em;
+}
+
+// ---------- shared building blocks ----------
+
+.aurora-text {
+  background: var(--sk-aurora);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.mono {
+  font-family: var(--sk-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+%glass {
+  background: var(--sk-glass);
+  border: 1px solid var(--sk-line);
+  border-radius: var(--sk-radius);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: var(--sk-highlight), var(--sk-shadow);
+}
+
+.glass {
+  @extend %glass;
 }
 
 .page-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin: 8px 0 20px;
 
   h1 {
-    font: var(--mat-sys-headline-small);
+    font-size: clamp(24px, 4vw, 34px);
     font-weight: 600;
+    line-height: 1.15;
   }
   .sub {
-    color: var(--mat-sys-on-surface-variant);
-    margin-top: 2px;
+    color: var(--sk-muted);
+    margin-top: 6px;
   }
 }
 
+.eyebrow {
+  font-family: var(--sk-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sk-accent);
+  margin-bottom: 8px;
+}
+
 .toolbar-row {
+  @include mat.form-field-density(-3);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -74,20 +223,26 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #fff;
-  border: 1px solid var(--mat-sys-outline-variant);
+  padding: 3px 4px;
   border-radius: 999px;
-  padding: 2px 4px;
+  background: var(--sk-glass);
+  border: 1px solid var(--sk-line);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--sk-highlight);
 
   .label {
     min-width: 150px;
     text-align: center;
+    font-family: var(--sk-font-display);
     font-weight: 600;
-    line-height: 1.1;
+    line-height: 1.15;
     small {
       display: block;
+      font-family: var(--sk-font-body);
       font-weight: 400;
-      color: var(--mat-sys-on-surface-variant);
+      font-size: 12px;
+      color: var(--sk-muted);
     }
   }
 }
@@ -95,29 +250,29 @@ h3 {
 .state {
   padding: 48px 16px;
   text-align: center;
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sk-muted);
 
   mat-icon {
     font-size: 40px;
     width: 40px;
     height: 40px;
+    color: var(--sk-accent);
   }
-  &.error {
-    color: var(--sk-red);
+  &.error,
+  &.error mat-icon {
+    color: var(--sk-red-text);
   }
 }
 
 .panel {
-  background: #fff;
-  border: 1px solid var(--mat-sys-outline-variant);
-  border-radius: 12px;
-  padding: 16px;
+  @extend %glass;
+  padding: 20px;
   margin-bottom: 16px;
 
   h2 {
-    font: var(--mat-sys-title-medium);
+    font-size: 17px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
   }
 }
 
@@ -133,62 +288,143 @@ table.data {
   th,
   td {
     text-align: left;
-    padding: 10px 8px;
-    border-bottom: 1px solid var(--mat-sys-outline-variant);
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--sk-line-soft);
     white-space: nowrap;
   }
   th {
-    font-weight: 600;
-    color: var(--mat-sys-on-surface-variant);
-    font-size: 12px;
+    font-family: var(--sk-font-mono);
+    font-weight: 500;
+    color: var(--sk-muted);
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.1em;
+  }
+  tbody tr:hover {
+    background: rgba(245, 247, 255, 0.03);
   }
   td.num {
     text-align: right;
+    font-family: var(--sk-font-mono);
     font-variant-numeric: tabular-nums;
   }
 }
 
 .pill {
-  display: inline-block;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
 
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
   &.red {
-    background: var(--sk-red);
-    color: #fff;
+    background: var(--sk-red-bg);
+    border-color: rgba(255, 92, 92, 0.45);
+    color: var(--sk-red-text);
   }
   &.amber {
     background: var(--sk-amber-bg);
+    border-color: rgba(255, 196, 138, 0.35);
     color: var(--sk-amber);
   }
   &.green {
     background: var(--sk-green-bg);
+    border-color: rgba(139, 240, 176, 0.3);
     color: var(--sk-green);
   }
   &.grey {
     background: var(--sk-grey-bg);
+    border-color: var(--sk-line);
     color: var(--sk-grey);
   }
 }
 
 .muted {
-  color: var(--mat-sys-on-surface-variant);
+  color: var(--sk-muted);
 }
 
+// Primary call to action: the brand's white pill.
+.btn-cta.mat-mdc-button-base {
+  --mat-button-filled-container-color: var(--sk-text);
+  --mat-button-filled-label-text-color: var(--sk-bg);
+  font-weight: 600;
+}
+
+// Pill-shaped buttons across the app, like the brand.
+.mat-mdc-button-base {
+  --mat-button-filled-container-shape: 999px;
+  --mat-button-outlined-container-shape: 999px;
+  --mat-button-text-container-shape: 999px;
+  --mat-button-outlined-outline-color: rgba(245, 247, 255, 0.3);
+}
+
+.mat-mdc-form-field {
+  --mat-form-field-outlined-container-shape: 14px;
+}
+
+div.mat-mdc-select-panel,
+div.mat-mdc-autocomplete-panel {
+  background: var(--sk-glass-strong);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--sk-line);
+}
+
+.mat-mdc-snack-bar-container {
+  --mat-snack-bar-container-color: #f5f7ff;
+  --mat-snack-bar-supporting-text-color: #05060f;
+  --mat-snack-bar-button-color: #6a5cff;
+}
+
+.mat-mdc-progress-bar {
+  --mat-progress-bar-active-indicator-color: var(--sk-accent);
+  --mat-progress-bar-track-color: rgba(124, 242, 200, 0.15);
+  border-radius: 999px;
+}
+
+// ---------- print: the inspector gets ink on white paper ----------
 @media print {
-  .app-bar,
-  .nav-bottom,
-  .no-print {
-    display: none !important;
+  :root {
+    --sk-text: #0b0e1f;
+    --sk-muted: #4b5370;
+    --sk-line: #d5d9e6;
+    --sk-line-soft: #e2e6f2;
+    --sk-red-text: #b42318;
+    --sk-green: #1f7a4d;
+    --sk-amber: #a85a00;
+  }
+  html {
+    color-scheme: light;
   }
   body {
     background: #fff;
+    color: #0b0e1f;
   }
-  .page {
-    padding: 0 !important;
+  body::before,
+  .no-print {
+    display: none !important;
+  }
+  .panel,
+  .glass {
+    background: #fff !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border-color: #d5d9e6 !important;
+  }
+  .aurora-text {
+    color: #0b0e1f;
+    background: none;
   }
 }

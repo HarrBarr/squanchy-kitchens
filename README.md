@@ -12,6 +12,10 @@ the Ministry of Health question: **when did this fridge go above 5°C, and for h
 - **Logger registry:** which logger is in which fridge, since when, in °C or °F. Summer can
   record a move herself.
 
+The UI follows the Simple To Work **"Northern lights"** brand: a night-sky background with
+aurora glows and liquid-glass cards. Headings are Sora, body text Inter and data JetBrains
+Mono, all self-hosted. The printed inspector report switches to dark ink on white paper.
+
 There is no LLM and no agent workflow. Stack: FastAPI + SQLAlchemy + Alembic, MySQL 8,
 Angular 22 + Angular Material + ECharts, all in Docker Compose.
 

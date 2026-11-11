@@ -1,6 +1,7 @@
 <div class="page-head">
   <div>
-    <h1>Logger registry</h1>
+    <div class="eyebrow">Where every logger sits</div>
+    <h1>Logger <span class="aurora-text">registry</span></h1>
     <div class="sub">
       Which logger sits in which fridge, from when, and in which unit (°C or °F).
     </div>
@@ -66,7 +67,9 @@
       <mat-label>From (local date)</mat-label>
       <input matInput type="date" name="from" [(ngModel)]="draft.assigned_from" required />
     </mat-form-field>
-    <button mat-flat-button type="submit" [disabled]="!valid() || busy()">Save</button>
+    <button mat-flat-button class="btn-cta" type="submit" [disabled]="!valid() || busy()">
+      Save
+    </button>
   </form>
 </section>
 
