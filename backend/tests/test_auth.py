@@ -7,6 +7,7 @@ manager.telaviv, manager.ashdod, ...), with the test-only passwords set in conft
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -452,3 +453,40 @@ def test_jwt_secret_is_generated_once_per_install(tmp_path, monkeypatch):
     other = Settings(database_url="unused", jwt_secret="", state_dir=str(tmp_path / "other"))
     assert auth._signing_key(other) != k1  # another install, another secret
     auth._persisted_secret.cache_clear()
+
+
+# ---------- clock skew ----------
+
+
+def _token_at(user: User, settings: Settings, issued: datetime, minutes: int = 480) -> str:
+    import jwt as pyjwt
+
+    from app.auth import ALGORITHM, _signing_key
+
+    claims = {
+        "sub": str(user.id),
+        "iat": issued,
+        "exp": issued + timedelta(minutes=minutes),
+    }
+    return pyjwt.encode(claims, _signing_key(settings), algorithm=ALGORITHM)
+
+
+def test_token_survives_a_small_clock_jump(db, settings, anon):
+    """The VM clock jumped back ~5 s during a test run, so a just-issued token looked
+    "issued in the future" and the next request got a random 401."""
+    admin = db.scalar(select(User).where(User.username == "admin"))
+    ahead = _token_at(admin, settings, datetime.now(UTC) + timedelta(seconds=30))
+    r = anon.get("/api/auth/me", headers={"Authorization": f"Bearer {ahead}"})
+    assert r.status_code == 200
+
+
+def test_expired_and_far_future_tokens_are_still_refused(db, settings, anon):
+    admin = db.scalar(select(User).where(User.username == "admin"))
+    expired = _token_at(admin, settings, datetime.now(UTC) - timedelta(hours=9), minutes=480)
+    assert (
+        anon.get("/api/auth/me", headers={"Authorization": f"Bearer {expired}"}).status_code == 401
+    )
+    future = _token_at(admin, settings, datetime.now(UTC) + timedelta(minutes=10))
+    assert (
+        anon.get("/api/auth/me", headers={"Authorization": f"Bearer {future}"}).status_code == 401
+    )

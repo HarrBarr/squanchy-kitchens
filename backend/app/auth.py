@@ -34,6 +34,10 @@ from app.storage.models import ROLE_ADMIN, AuditLog, Branch, Fridge, User
 from app.storage.session import get_db
 
 ALGORITHM = "HS256"
+# Tolerance for clock differences when checking a token's iat / exp. PyJWT rejects a token
+# "issued in the future" with zero tolerance by default, and VM clocks (WSL2, Docker Desktop
+# after a laptop sleeps) can jump back by seconds: valid sessions then got a random 401.
+CLOCK_SKEW_LEEWAY = timedelta(seconds=60)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
@@ -133,7 +137,9 @@ def current_user(
     if not token:
         raise _unauthorized()
     try:
-        claims = jwt.decode(token, _signing_key(settings), algorithms=[ALGORITHM])
+        claims = jwt.decode(
+            token, _signing_key(settings), algorithms=[ALGORITHM], leeway=CLOCK_SKEW_LEEWAY
+        )
         user_id = int(claims["sub"])
     except (jwt.PyJWTError, KeyError, ValueError) as exc:
         raise _unauthorized("Your session has expired. Please sign in again.") from exc
