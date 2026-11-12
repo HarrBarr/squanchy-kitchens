@@ -9,7 +9,11 @@ COPY pyproject.toml ./
 RUN mkdir app && touch app/__init__.py && uv pip install --system ".[dev]"
 
 COPY . .
-RUN uv pip install --system --no-deps . \
+# --reinstall: the dependency layer above installed a stub `app` package (same name and
+# version), and without it uv only "audits" and keeps the stub. Then the `alembic` command
+# imported the empty stub and a clean (no-cache) build failed with "No module named
+# 'app.config'".
+RUN uv pip install --system --no-deps --reinstall . \
     && chmod +x entrypoint.sh \
     && mkdir -p /data/uploads /data/state
 
