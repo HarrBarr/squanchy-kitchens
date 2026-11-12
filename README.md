@@ -213,7 +213,7 @@ make test
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm --no-deps web npx ng test --watch=false
 ```
 
-- **Backend:** 98 pytest tests. They cover the parser (every format family and the
+- **Backend:** 113 pytest tests. They cover the parser (every format family and the
   sample-table pins), timezone/DST and °F conversion, the rules engine, ingest (duplicates,
   out-of-order rows, idempotency, unknown logger, the TL-0417 move) and the API (colours,
   report, CSV, registry). They also cover sign-in and roles (`backend/tests/test_auth.py`: cross-branch `403`s,
@@ -226,7 +226,7 @@ make test
   `mysql` service as root, migrate it with Alembic and drop it afterwards. The demo database
   is never touched. On a host without `TEST_DATABASE_URL`, the same tests run against a
   temporary SQLite file (`cd backend && pytest`).
-- **Frontend:** 44 Vitest tests in the Node `dev` image. They cover the card colour helper,
+- **Frontend:** 48 Vitest tests in the Node `dev` image. They cover the card colour helper,
   filename → logger, the upload dialog (submit stays disabled until a file and a logger are
   chosen), the chart breaking at gaps and `ERR`, empty-state smoke tests for each route, and
   auth (guards, the Bearer interceptor, admin vs manager navigation).

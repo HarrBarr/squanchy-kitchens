@@ -138,6 +138,12 @@ manager, asked for the changes, and checked the results.
     caught them (commits `a55c95d`, `e4f103e`).
   - Its first theme painted a recovered fridge's healthy temperature red; a screenshot
     review caught it before it shipped.
+  - A clean-clone test caught alembic importing a stub `app` package left in the image by
+    the Docker dependency-cache layer. It only showed without the build cache (commit
+    `ad7126a`).
+  - Re-running the full suite to verify that fix exposed random 401s: PyJWT rejected tokens
+    "issued in the future" after the VM clock jumped back a few seconds. Tokens now allow
+    60 s of clock skew (commit `b3ce00a`).
 
 ## Approach
 
